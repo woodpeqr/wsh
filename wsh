@@ -1,0 +1,168 @@
+#!/bin/env bash
+set -euo pipefail
+IFS=$'\t\n'
+
+help_format="  %-3s %-20s %s\n"
+help_format_1="  $help_format"
+wsh_dir=$(dirname $(realpath "$0"))
+plugin_dir="$wsh_dir/plugins"
+
+declare -A args
+flags=()
+
+# FLAGS
+debug=
+init=
+init_pyenv=
+init_nvm=
+shell_sync=
+
+log() {
+    printf "%s\n" "$@" >&2 
+}
+
+debug(){
+    if [[ -n $debug ]]; then
+        log "v: $@"
+    fi
+}
+
+usage() {
+    log "usage: $(basename $0) OPERATION [...]"
+    log ""
+    log "some OPTIONS enter a context and will allow the use of more OPTIONS, but whenever an OPTION from outside this context is passed, then it leaves the context, meaning that the order of OPTIONS is semi-important"
+    log "examples:"
+    log " wsh -Ipv"
+    log " wsh -vIp"
+    log ""
+    log "bad examples:"
+    log " wsh -Ivp # -v breaks the -I context, making -p no longer relevant"
+    log ""
+    printf $help_format "-h" "--help" "show this menu"
+    printf $help_format "-v" "--vebose" "extensive logging"
+    printf $help_format "-I" "--init" "init options"
+    printf $help_format_1 "-n" "--nvm" "init nvm"
+    printf $help_format_1 "-p" "--pyenv" "init pyenv"
+    printf $help_format "-S" "--shell" "shell options"
+    printf $help_format_1 "-S" "--sync" "sync a package, which will install or update a package"
+}
+
+pre_process_flags() {
+    for arg in "$@"; do
+        case "$arg" in 
+            --*)
+                flags+=("$arg")
+                ;;
+            -*)
+                for ((i=1; i<${#arg}; i++)); do
+                    flags+=("-${arg:i:1}")
+                done
+                ;;
+            *)
+                flags+=("$arg")
+                ;;
+        esac
+    done
+}
+
+assert_arg() {
+    if [[ -n $NEXT_MUST_BE_ARG ]]; then
+        log "expected an arg, but got $1"
+        usage
+        exit 1
+    fi
+}
+
+unknown_flag() {
+    log "unknown argument: $1"
+    log "mayhaps it was used in the wrong context?"
+    log ""
+    usage
+    exit 1
+}
+
+if [[ ${#@} -eq 0 ]]; then
+    usage
+    exit 1
+fi
+
+pre_process_flags "$@"
+
+current_op=
+
+for ((i = 0 ; i < "${#flags[@]}" ; i++ )); do
+    case "${flags[$i]}" in
+        --help | -h)
+            usage
+            exit 0
+            ;;
+        --verbose | -v)
+            debug=1
+            ;;
+        --init | -I)
+            init=1
+            ((i++)) || true
+            for (( ; i < "${#flags[@]}" ; i++ )); do
+                case "${flags[$i]}" in 
+                    --pyenv | -p)
+                        init_pyenv=1
+                        ;;
+                    --nvm | -n)
+                        init_nvm=1
+                        ;;
+                    *)
+                        ((i--)) || true
+                        break
+                        ;;
+                esac
+            done
+            ;;
+        --shell | -S)
+            ((i++)) || true
+            for (( ; i < "${#flags[@]}" ; i++ )); do
+                case "${flags[$i]}" in 
+                    --sync | -S)
+                        shell_sync=1
+                        current_op=shell_sync
+                        ;;
+                    *)
+                        ((i--)) || true
+                        break
+                        ;;
+                esac done
+            ;;
+        --* | -*)
+            unknown_flag "${flags[i]}"
+            exit 1
+            ;;
+        *)
+            if [[ -n $current_op ]]; then
+                args[$current_op]+="${flags[$i]}"$'\n'
+            fi
+            ;;
+    esac
+done
+
+if [[ -n $init ]]; then
+    debug "initializing autocompletions"
+    echo "autoload -Uz compinit"
+    echo "compinit"
+    echo "eval $(starship init zsh)"
+fi
+
+if [[ -n $init_pyenv ]]; then
+    debug "initializing pyenv"
+    echo "source $wsh_dir/_pyenv.sh"
+fi
+
+if [[ -n $init_nvm ]]; then 
+    debug "initializing nvm"
+    echo "source $wsh_dir/_nvm.sh"
+fi
+
+if [[ -n $shell_sync ]]; then
+    debug "syncing packages"
+    while IFS=$'\n' read -r val; do
+        echo "'$val'"
+    done < <(printf '%s' "${args[shell_sync]}")
+fi
