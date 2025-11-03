@@ -16,10 +16,27 @@ solidtime_user_id=
 solidtime_org_id=
 solidtime_project_id=
 
+# FLAGS
+time_offline=
+time_from=30
+time_start=
+
+format_seconds() {
+    local total_s=$1
+    local hours=$((total_s / 3600))
+    local minutes=$(((total_s % 3600) / 60))
+    local seconds=$((total_s % 60))
+    stdout "${hours}h ${minutes}m ${seconds}s"
+}
+
 solidtime_get() {
     local endpoint=$1
     shift
     local url="$solidtime_api_url/$endpoint"
+
+    if [[ -n $time_offline ]]; then
+        error "offline mode, but still tried to make request. not user error"
+    fi 
 
     if [[ -z $SOLIDTIME_API_KEY ]]; then
         error "\$SOLIDTIME_API_KEY env var is not set!"        
@@ -31,26 +48,64 @@ solidtime_get() {
 
     [[ -n "$query" ]] && url="$url?$query"
 
-    curl \
+    res=$(curl \
         -H "Authorization: Bearer $SOLIDTIME_API_KEY" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         -L \
-        "$url"
+        "$url")
+    debug "$url =>" "$(echo "$res" | jq .)"
+    stdout $res 
 }
 
-solidtime_set_user_id(){
-    solidtime_user_id=$(solidtime_get "/users/me" | jq .data.id)
+solidtime_assert_user_id(){
+    if [[ -z "$solidtime_user_id" ]]; then
+        solidtime_user_id=$(solidtime_get "/users/me" | jq -r .data.id)
+    fi
 }
 
-solidtime_set_org_id(){
-    memberships=$(solidtime_get "/users/me/memberships")
-    echo $memberships
+solidtime_assert_org_id(){
+    if [[ -z "$solidtime_org_id" ]]; then
+        solidtime_org_id=$(solidtime_get "/users/me/memberships" | \
+            jq -r --arg name "$SOLIDTIME_ORG" '.data[] | select(.organization.name == $name) | .organization.id')
+    fi
 }
 
-solidtime_set_project_id() {
+solidtime_assert_project_id() {
+    solidtime_assert_org_id
+    if [[ -z "$solidtime_project_id" ]]; then
+        solidtime_project_id=$(solidtime_get "/organizations/$solidtime_org_id/projects" | \
+            jq -r --arg name "$SOLIDTIME_PROJECT" '.data[] | select(.name == $name) | .id')
+    fi
+}
+
+solidtime_get_shift_stats() {
+   if [[ -n $time_offline ]]; then
+       log "running in offline mode, skipping fetching shift stats"
+       return 0
+   fi
+
+   solidtime_assert_user_id
+   solidtime_assert_org_id
+   solidtime_assert_project_id
+
+   local start="$(date -uv-${time_from}d +%Y-%m-%dT%H:%M:%SZ)"
+   local end="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+   local data=$(solidtime_get "/organizations/$solidtime_org_id/time-entries/aggregate" \
+       "start=$start" \
+       "end=$end" \
+       "project_ids[]=$solidtime_project_id" \
+       "user_id=$solidtime_user_id" \
+       "group=day" \
+       "active=false")
+
+   local seconds=$(echo "$data" | jq -r .data.seconds)
+   local overtime=$((seconds - ($(echo "$data" | jq '.data.grouped_data | length') * 8 * 3600)))
+   
+   stdout $seconds $overtime
+}
+
+solidtime_get_current_shift_info() {
     command ...
 }
-
-
-

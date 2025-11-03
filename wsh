@@ -6,6 +6,7 @@ help_format="  %-3s %-20s %s\n"
 help_format_1="  $help_format"
 wsh_dir=$(dirname $(realpath "$0"))
 plugin_dir="$wsh_dir/plugins"
+shim_dir="$wsh_dir/shims"
 
 # FLAGS
 ## GLOBAL
@@ -14,13 +15,11 @@ debug=
 init=
 init_pyenv=
 init_nvm=
+init_uninit=
 ##SHELL
 shell_sync=
 ##TIME
 time=
-time_offline=
-time_from=
-time_start=
 
 # ARGS
 ## SHELL
@@ -69,6 +68,7 @@ usage() {
     print_option 0 "-I" "--init" "" "init options"
     print_option 1 "-n" "--nvm" "" "init nvm"
     print_option 1 "-p" "--pyenv" "" "init pyenv"
+    print_option 1 "-u" "--uninit" "" "instead of initializing, uninitialize relevant init scripts"
     # TODO
     print_option 0 "-S" "--shell" "" "shell options"
     print_option 1 "-S" "--sync" "" "sync a package, which will install or update a package"
@@ -139,11 +139,30 @@ count_ops() {
     return $count
 }
 
+setup_shims() {
+    local shim_content="$1"
+    shift
+    mkdir -p "$shim_dir"
+
+    for shim in "$@"; do
+        if [[ -n $init_uninit ]]; then
+            rm -f "$shim_dir/$shim"
+        else
+            echo "#!/usr/bin/env bash
+cmd=\"\$(which -a \$(basename \"\$0\") | grep -v \"\$(realpath \"\$0\")\" | head -1)\" 
+if [[ -z \"\$cmd\" ]]; then
+    $shim_content
+fi
+exec \"\$cmd\" \"\$@\"" > "$shim_dir/$shim"
+            chmod +x "$shim_dir/$shim"
+        fi
+    done
+}
+
 if [[ ${#@} -eq 0 ]]; then
     usage
     exit 1
 fi
-
 to_array flags "$(pre_process_flags "$@")"
 
 for ((i = 0; i < "${#flags[@]}"; i++)); do
@@ -165,6 +184,9 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
                 ;;
             --nvm | -n)
                 init_nvm=1
+                ;;
+            --uninit | -u)
+                init_uninit=1
                 ;;
             *)
                 ((i--)) || true
@@ -245,21 +267,30 @@ elif [[ $op_count -gt 1 ]]; then
     exit 1
 fi
 
-if [[ -n $init ]]; then
+if [[ -z $init ]]; then
     debug "initializing autocompletions"
     echo "autoload -Uz compinit"
     echo "compinit"
     echo "eval $(starship init zsh)"
+    echo "PATH=\"$shim_dir:\$PATH\""
 fi
 
 if [[ -n $init_pyenv ]]; then
     debug "initializing pyenv"
-    echo "source $wsh_dir/_pyenv.sh"
+    setup_shims \
+    'export PYENV_ROOT="$HOME/.pyenv"
+    [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(command pyenv init - zsh)"' \
+    pyenv python python3 pip pip3
 fi
 
 if [[ -n $init_nvm ]]; then
     debug "initializing nvm"
-    echo "source $wsh_dir/_nvm.sh"
+    setup_shims \
+    'export NVM_DIR="$HOME/.nvm"
+    [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
+    [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"' \
+    nvm node npm npx pnpm
 fi
 
 if [[ -n $shell_sync ]]; then

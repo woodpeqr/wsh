@@ -23,5 +23,3 @@ to_array() {
     shift # first arg is the arr name, so let's ignore it from now on
     IFS=$'\n' read -r -d '' -a $arr_name <<< "$*" || true
 }
-
-
