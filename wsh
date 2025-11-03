@@ -7,36 +7,50 @@ help_format_1="  $help_format"
 wsh_dir=$(dirname $(realpath "$0"))
 plugin_dir="$wsh_dir/plugins"
 
-args=()
-flags=()
-
 # FLAGS
+## GLOBAL
 debug=
+## INIT
 init=
 init_pyenv=
 init_nvm=
+##SHELL
 shell_sync=
+##TIME
+time=
+time_offline=
+time_from=
+time_start=
 
-stdout() {
-    printf '%s\n' "$@"
-}
+# ARGS
+## SHELL
+shell_args=()
+## TIME
+time_from_arg=
+time_start_arg=
 
-log() {
-    printf "%s\n" "$@" >&2 
-}
+# LIBS
+source "$wsh_dir/_utils.sh"
+source "$wsh_dir/_time.sh"
 
-debug(){
-    if [[ -n $debug ]]; then
-        log "v: $@"
+print_option() {
+    local level="$1"
+    local short="$2"
+    local long="$3"
+    local arg="$4"
+    local desc="$5"
+
+    local indent="  "
+    for ((i = 0; i < level; i++)); do
+        indent="  $indent"
+    done
+
+    if [[ -n "$arg" ]]; then
+        printf "${indent}%-3s %-20s %s\n" "$short" "$long <$arg>" "$desc"
+    else
+        printf "${indent}%-3s %-20s %s\n" "$short" "$long" "$desc"
     fi
 }
-
-to_array() {
-    local arr_name=$1
-    shift # first arg is the arr name, so let's ignore it from now on
-    IFS=$'\n' read -r -d '' -a $arr_name <<< "$*" || true
-}
-
 
 usage() {
     log ""
@@ -50,38 +64,64 @@ usage() {
     log "bad examples:"
     log " wsh -Ivp # -v breaks the -I context, making -p no longer relevant"
     log ""
-    printf $help_format "-h" "--help" "show this menu"
-    printf $help_format "-v" "--vebose" "extensive logging"
-    printf $help_format "-I" "--init" "init options"
-    printf $help_format_1 "-n" "--nvm" "init nvm"
-    printf $help_format_1 "-p" "--pyenv" "init pyenv"
-    printf $help_format "-S" "--shell" "shell options"
-    printf $help_format_1 "-S" "--sync" "sync a package, which will install or update a package"
+    print_option 0 "-h" "--help" "" "show this menu"
+    print_option 0 "-v" "--vebose" "" "extensive logging"
+    print_option 0 "-I" "--init" "" "init options"
+    print_option 1 "-n" "--nvm" "" "init nvm"
+    print_option 1 "-p" "--pyenv" "" "init pyenv"
+    # TODO
+    print_option 0 "-S" "--shell" "" "shell options"
+    print_option 1 "-S" "--sync" "" "sync a package, which will install or update a package"
+    # TODO END
+    print_option 0 "-T" "--time" "" "time tracker options"
+    print_option 1 "-o" "--offline" "" "do not query the server for time; REQUIRES --start"
+    print_option 1 "-f" "--from" "days" "from how many days ago to calculate overtime"
+    print_option 1 "-s" "--start" "timestamp" "override shift start time and don't query the server for this info; REQUIRED when --offline"
 }
 
 pre_process_flags() {
     for arg in "$@"; do
-        case "$arg" in 
-            --*)
-                stdout "$arg"
-                ;;
-            -*)
-                for ((i=1; i<${#arg}; i++)); do
-                    stdout "-${arg:i:1}"
-                done
-                ;;
-            *)
-                stdout "$arg"
-                ;;
+        case "$arg" in
+        --*)
+            stdout "$arg"
+            ;;
+        -*)
+            for ((i = 1; i < ${#arg}; i++)); do
+                stdout "-${arg:i:1}"
+            done
+            ;;
+        *)
+            stdout "$arg"
+            ;;
         esac
     done
 }
 
 unknown_flag() {
-    log "unknown argument: $1"
+    error "unknown argument: $1"
     log "mayhaps it was used in the wrong context?"
     usage
     exit 1
+}
+
+no_arg_for_flag() {
+    error "$1 requires an argument $2"
+    usage
+    exit 1
+}
+
+validate_time_from() {
+    if [[ ! "$1" =~ ^[0-9]+$ ]] || [[ "$1" -lt 1 ]]; then
+        error "days must be a positive integer, not $1"
+        exit 1
+    fi
+}
+
+validate_time_start() {
+    if [[ ! "$1" =~ ^([0-9]|[0-1][0-9]|2[0-4]):([0-9]|[0-5][0-9])$ ]]; then
+        error "timestamp must be in format of H:M, HH:MM and their permutations, not $1"
+        exit 1
+    fi
 }
 
 count_ops() {
@@ -106,58 +146,93 @@ fi
 
 to_array flags "$(pre_process_flags "$@")"
 
-for ((i = 0 ; i < "${#flags[@]}" ; i++ )); do
+for ((i = 0; i < "${#flags[@]}"; i++)); do
     case "${flags[$i]}" in
-        --help | -h)
-            usage
-            exit 0
-            ;;
-        --verbose | -v)
-            debug=1
-            ;;
-        --init | -I)
-            init=1
-            ((i++)) || true
-            for (( ; i < "${#flags[@]}" ; i++ )); do
-                case "${flags[$i]}" in 
-                    --pyenv | -p)
-                        init_pyenv=1
-                        ;;
-                    --nvm | -n)
-                        init_nvm=1
-                        ;;
-                    *)
-                        ((i--)) || true
-                        break
-                        ;;
-                esac
-            done
-            ;;
-        --shell | -S)
-            ((i++)) || true
-            for (( ; i < "${#flags[@]}" ; i++ )); do
-                case "${flags[$i]}" in 
-                    --sync | -S)
-                        shell_sync=1
-                        ;;
-                    *)
-                        ((i--)) || true
-                        break
-                        ;;
-                esac done
-            ;;
-        --* | -*)
-            unknown_flag "${flags[i]}"
-            exit 1
-            ;;
-        *)
-            args+=("${flags[$i]}")
-            ;;
+    --help | -h)
+        usage
+        exit 0
+        ;;
+    --verbose | -v)
+        debug=1
+        ;;
+    --init | -I)
+        init=1
+        ((i++)) || true
+        for (( ; i < "${#flags[@]}"; i++)); do
+            case "${flags[$i]}" in
+            --pyenv | -p)
+                init_pyenv=1
+                ;;
+            --nvm | -n)
+                init_nvm=1
+                ;;
+            *)
+                ((i--)) || true
+                break
+                ;;
+            esac
+        done
+        ;;
+    --shell | -S)
+        ((i++)) || true
+        for (( ; i < "${#flags[@]}"; i++)); do
+            case "${flags[$i]}" in
+            --sync | -S)
+                shell_sync=1
+                ;;
+            --* | -*)
+                ((i--)) || true
+                break
+                ;;
+            *)
+                shell_args+=("${flags[$i]}")
+                ;;
+            esac
+        done
+        ;;
+    --time | -T)
+        time=1
+        ((i++)) || true
+        for (( ; i < "${#flags[@]}"; i++)); do
+            case "${flags[$i]}" in
+            --offline | -o)
+                time_offline=1
+                ;;
+            --from | -f)
+                time_from=1
+                if [[ $((i + 1)) -lt "${#flags[@]}" ]]; then
+                    ((i++))
+                    time_from_arg="${flags[$i]}"
+                    validate_time_from "$time_from_arg"
+                else 
+                    no_arg_for_flag "${flags[$i]}" "days"
+                fi
+                ;;
+            --start | -s)
+                time_start=1
+                if [[ $((i + 1)) -lt "${#flags[@]}" ]]; then
+                    ((i++))
+                    time_start_arg="${flags[$i]}"
+                    validate_time_start "$time_start_arg"
+                else 
+                    no_arg_for_flag "${flags[$i]}" "timestamp"
+                fi
+                ;;
+            *)
+                ((i--)) || true
+                break
+                ;;
+            esac
+        done
+        ;;
+    *)
+        unknown_flag "${flags[i]}"
+        ;;
     esac
 done
 
 # ADD MORE OPS HERE
-count_ops ops init shell_sync
+count_ops ops init shell_sync time
 op_count=$?
 
 if [[ $op_count -eq 0 ]]; then
@@ -165,7 +240,7 @@ if [[ $op_count -eq 0 ]]; then
     usage
     exit 1
 elif [[ $op_count -gt 1 ]]; then
-    log "more than 1 operation defined: " ${ops[@]}
+    log "more than 1 operation defined: " "${ops[@]}"
     usage
     exit 1
 fi
@@ -182,7 +257,7 @@ if [[ -n $init_pyenv ]]; then
     echo "source $wsh_dir/_pyenv.sh"
 fi
 
-if [[ -n $init_nvm ]]; then 
+if [[ -n $init_nvm ]]; then
     debug "initializing nvm"
     echo "source $wsh_dir/_nvm.sh"
 fi
@@ -192,4 +267,9 @@ if [[ -n $shell_sync ]]; then
     for pkg in "${args[@]}"; do
         echo $pkg
     done
+fi
+
+if [[ -n $time ]]; then
+    debug "yay"
+    solidtime_get "/users/me/memberships"
 fi
