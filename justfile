@@ -1,3 +1,3 @@
 build_warg:
-    go build -C ./warg/ -o ../bin/warg/warg
+    go build -C ./warg/cmd/warg -o ../../../bin/warg/warg
 
