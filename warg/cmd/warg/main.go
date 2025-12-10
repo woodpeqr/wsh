@@ -1,59 +1,55 @@
 package main
 
 import (
-	"V-Woodpecker-V/wsh/warg/flags"
+	"fmt"
 	"os"
 )
 
+type CliFlags struct {
+	Add struct {
+		Names   []string `warg:"-n,--names; names of the flag"`
+		Desc    string   `warg:"-d,--description; description of the flag"`
+		IsValue bool     `warg:"-v,--value; does the flag require a value"`
+	} `warg:"-A,--add; add a new flag"`
+}
+
+type Flag struct {
+	Names []string
+	Help  string
+}
+
+type WFlag interface {
+	Flag
+
+	Set(s string) error
+	Get() string
+	IsSet() bool
+}
+
+type LibFlag[T any] struct {
+	Flag	
+	valuePtr *T
+}
+
+func (f *LibFlag[T]) Set(s string) error {
+	panic("not implemented")
+}
+
+func (f *LibFlag[T]) Get() string {
+	panic("not implemented")
+}
+
+func (f *LibFlag[T]) IsSet() bool {
+	return f.Get() != ""
+}
+
+type CfgFlag struct {
+	Flag
+	value string
+	isSwitch bool
+}
+
+
 func main() {
-	addFlag := &flags.WFlag{
-		Short: "A",
-		Long:  "add",
-		Help:  "add a new flag",
-	}
-	addFlag.Children = []*flags.WFlag{
-		{
-			Short:         "s",
-			Long:          "short",
-			Help:          "short version of a flag",
-			Parent:        addFlag,
-			ValueRequired: true,
-		},
-		{
-			Short:         "l",
-			Long:          "long",
-			Help:          "long version of a flag",
-			Parent:        addFlag,
-			ValueRequired: true,
-		},
-		{
-			Short:         "h",
-			Long:          "help",
-			Help:          "help message of a flag",
-			Parent:        addFlag,
-			ValueRequired: true,
-		},
-		{
-			Short:                 "p",
-			Long:                  "parent",
-			Help:                  "which flag to put it under",
-			Parent:                addFlag,
-			NonEmptyValueRequired: true,
-		},
-		{
-			Short:  "v",
-			Long:   "value",
-			Help:   "this flag requires a value",
-			Parent: addFlag,
-		},
-		{
-			Short:  "V",
-			Long:   "non_empty_value",
-			Help:   "this flag requires a value that is not empty",
-			Parent: addFlag,
-		},
-	}
-	flags.AddFlag(addFlag)
-	flags.ParseArgs(os.Args[1:])
-	flags.DebugPrintFlags()
+	fmt.Println(os.Args)
 }
