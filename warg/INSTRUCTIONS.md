@@ -295,32 +295,34 @@ For the library side, use the justfile recipe:
 just test-lib
 ```
 
-**Note**: A library integration test already exists at `../warg-lib-test/`
+**Note**: A comprehensive integration test suite exists at `../warg-integration/`
 
-The `test-lib` recipe runs the integration test that imports warg as a module and validates all public APIs work correctly.
+The `test-lib` recipe runs the integration test suite that imports warg as a module and validates all public APIs work correctly using the testify testing framework.
 
-To manually run the integration test:
+To manually run the integration tests:
 
 ```bash
-cd ../warg-lib-test
-go run main.go
+cd ../warg-integration
+go test -v
+
+# Run specific test
+go test -v -run TestBasicTypes
+
+# Run with coverage
+go test -v -cover
 ```
 
-To create a new integration test from scratch:
+The integration test suite includes:
+- Basic types (bool, string, int, float)
+- Slice types with repeated flags
+- Hierarchical contexts
+- Custom types (time.Duration)
+- Immutability verification
+- Error handling
+- Edge cases
+- Real-world scenarios
 
-```bash
-# Create a test directory (e.g., at the same level as warg)
-cd /Users/vojta.vojacek/repos/wsh
-mkdir -p my-warg-test
-cd my-warg-test
-
-# Initialize a new Go module
-go mod init my-warg-test
-
-# Add warg as a dependency (use local path during development)
-go mod edit -replace V-Woodpecker-V/wsh/warg=../warg
-go get V-Woodpecker-V/wsh/warg/flags
-To create a new integration test from scratch, see the example at `../warg-lib-test/` for reference.
+To create a new integration test from scratch, see the example at `../warg-integration/` for reference.
 
 ### Testing Strategy Summary
 
@@ -328,7 +330,7 @@ To create a new integration test from scratch, see the example at `../warg-lib-t
 |-----------|---------------|---------|
 | **Unit Tests** | `just test` | Test individual functions and packages |
 | **CLI Interface** | `just test-cli` | Test real-world CLI usage and argument parsing |
-| **Library Interface** | `just test-lib` | Test that warg can be imported and used as a library |
+| **Library Interface** | `just test-lib` | Test that warg can be imported and used as a library (30+ test cases) |
 
 **Best Practice**: Always test both interfaces when making changes:
 1. Run unit tests: `just test`
@@ -341,6 +343,52 @@ just test-all
 ```
 
 This ensures the library works both as a standalone CLI tool and as an importable Go library.
+
+### Writing Integration Tests
+
+The integration test suite at `../warg-integration/` uses Go's standard testing framework with testify for assertions. When adding new features, add corresponding integration tests:
+
+**Test Structure:**
+```go
+func TestYourFeature(t *testing.T) {
+    t.Run("scenario description", func(t *testing.T) {
+        var result bool
+        
+        parser := lib.New().
+            Flag(&result, []string{"r", "result"}, "Description")
+        
+        parseResult := parser.Parse([]string{"-r"})
+        
+        require.Empty(t, parseResult.Errors, "should parse without errors")
+        assert.True(t, result, "result should be true")
+    })
+}
+```
+
+**Best Practices:**
+- Use `require` for critical assertions (stops test on failure)
+- Use `assert` for non-critical assertions (continues test on failure)
+- Use subtests (`t.Run()`) for related test cases
+- Provide clear, descriptive test names
+- Include both success and failure test cases
+- Test edge cases and boundary conditions
+
+**Running Integration Tests:**
+```bash
+cd ../warg-integration
+
+# Run all tests
+go test -v
+
+# Run specific test suite
+go test -v -run TestBasicTypes
+
+# Run specific subtest
+go test -v -run TestBasicTypes/bool_flag
+
+# Run with coverage
+go test -v -cover
+```
 
 ## Building
 
@@ -372,14 +420,15 @@ Before considering a task complete:
 - [ ] Issue/requirement fully understood
 - [ ] Solution implemented and working
 - [ ] All unit tests written and passing (`go test ./...`)
+- [ ] Integration tests added if library API changed (in `../warg-integration/`)
 - [ ] Code follows project conventions
 - [ ] No unnecessary changes made
 - [ ] Documentation created/updated (if needed)
 - [ ] Solution markdown file created (ONLY if architectural task)
 - [ ] Validated with all three test levels:
-  - [ ] Unit tests: `just test`
-  - [ ] CLI integration: `just test-cli`
-  - [ ] Library integration: `just test-lib`
+  - [ ] Unit tests: `just test` (11 test cases in lib package)
+  - [ ] CLI integration: `just test-cli` (9 CLI scenarios)
+  - [ ] Library integration: `just test-lib` (30+ integration test cases)
   - [ ] Or run all at once: `just test-all`
 
 ## Getting Help

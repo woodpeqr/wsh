@@ -93,7 +93,7 @@ test-cli:
 # Run library integration tests
 test-lib:
     #!/usr/bin/env bash
-    cd ../warg-lib-test && go run main.go
+    cd ../warg-integration && go test -v
 
 # Run all three test levels
 test-all:
@@ -126,7 +126,7 @@ test-all:
 # Clean build artifacts
 clean:
     rm -f warg
-    rm -f ../warg-lib-test/warg-lib-test
+    # Integration tests don't produce build artifacts (they use go test)
 
 # Format code
 fmt:

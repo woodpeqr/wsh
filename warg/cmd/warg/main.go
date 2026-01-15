@@ -10,20 +10,23 @@ import (
 	"V-Woodpecker-V/wsh/warg/flags"
 	"V-Woodpecker-V/wsh/warg/internal/cli"
 	"V-Woodpecker-V/wsh/warg/internal/parser"
+	"V-Woodpecker-V/wsh/warg/lib"
 )
 
 func main() {
-	// TODO: warg should use itself to parse its own flags
-	// For now, use ad-hoc parsing
-	
 	args := os.Args[1:]
 	
-	// Check for help flag
-	for _, arg := range args {
-		if arg == "-h" || arg == "--help" {
-			printUsage()
-			return
-		}
+	// Parse help flag using lib
+	var helpFlag bool
+	helpParser := lib.New().
+		Flag(&helpFlag, []string{"h", "help"}, "Show help message")
+	
+	// Parse just to extract help flag - ignore errors as we'll parse properly later
+	helpParser.Parse(args)
+	
+	if helpFlag {
+		printUsage()
+		return
 	}
 	
 	if err := run(args); err != nil {
@@ -132,17 +135,23 @@ func run(args []string) error {
 			}
 		}
 	} else if len(defArgs) > 0 {
-		// Check if first arg is a JSON string (object or array)
+		// Check if first arg looks like inline -A flags
 		firstArg := strings.TrimSpace(defArgs[0])
-		if strings.HasPrefix(firstArg, "{") || strings.HasPrefix(firstArg, "[") {
+		if firstArg == "-A" || firstArg == "--add" {
+			// Parse inline -A flags using lib
+			defs, err = parseAddFlagsWithLib(defArgs)
+			if err != nil {
+				return fmt.Errorf("failed to parse inline flags: %w", err)
+			}
+		} else if strings.HasPrefix(firstArg, "{") || strings.HasPrefix(firstArg, "[") {
 			// Parse as JSON
 			defs, err = cli.ParseJSONDefinitions([]byte(firstArg))
 			if err != nil {
 				return fmt.Errorf("failed to parse JSON: %w", err)
 			}
 		} else {
-			// Parse inline -A --add flags
-			defs, err = parseAddFlags(defArgs)
+			// Try parsing as inline flags (fallback)
+			defs, err = parseAddFlagsWithLib(defArgs)
 			if err != nil {
 				return fmt.Errorf("failed to parse flags: %w", err)
 			}
@@ -180,78 +189,63 @@ func run(args []string) error {
 	return nil
 }
 
-// parseAddFlags parses -A --add flags with their subflags
-func parseAddFlags(args []string) ([]flags.FlagDefinition, error) {
-	var defs []flags.FlagDefinition
+// AddFlagDef represents a single flag definition from -A context
+type AddFlagDef struct {
+	Names       string
+	Switch      bool
+	Description string
+}
+
+// parseAddFlagsWithLib parses -A --add flags using the lib package
+func parseAddFlagsWithLib(args []string) ([]flags.FlagDefinition, error) {
+	var addFlags []AddFlagDef
 	
-	i := 0
-	for i < len(args) {
-		arg := args[i]
-		
-		if arg == "-A" || arg == "--add" {
-			// Start of a new flag definition
-			i++
-			
-			var names []string
-			var isSwitch bool
-			var desc string
-			
-			// Parse subflags of -A
-			for i < len(args) {
-				subarg := args[i]
-				
-				// Check if we've hit the next -A or end
-				if subarg == "-A" || subarg == "--add" {
-					break
-				}
-				
-				if subarg == "-n" || subarg == "--name" {
-					if i+1 >= len(args) {
-						return nil, fmt.Errorf("-n/--name requires a value")
-					}
-					i++
-					// Parse comma-separated names and infer prefix
-					nameList := strings.Split(args[i], ",")
-					for _, name := range nameList {
-						name = strings.TrimSpace(name)
-						if name != "" {
-							// Infer: 1 char = short (-), multiple chars = long (--)
-							if len(name) == 1 {
-								names = append(names, "-"+name)
-							} else {
-								names = append(names, "--"+name)
-							}
-						}
-					}
-					i++
-				} else if subarg == "-s" || subarg == "--switch" {
-					isSwitch = true
-					i++
-				} else if subarg == "-d" || subarg == "--description" {
-					if i+1 >= len(args) {
-						return nil, fmt.Errorf("-d/--description requires a value")
-					}
-					i++
-					desc = args[i]
-					i++
-				} else {
-					return nil, fmt.Errorf("unknown flag in -A context: %s", subarg)
-				}
-			}
-			
-			if len(names) == 0 {
-				return nil, fmt.Errorf("-A requires at least -n/--name to be specified")
-			}
-			
-			defs = append(defs, flags.FlagDefinition{
-				Names:       names,
-				Switch:      isSwitch,
-				Description: desc,
-				Children:    []flags.FlagDefinition{},
+	parser := lib.New().
+		Context(&addFlags, []string{"A", "add"}, "Add flag definition", 
+			func(p *lib.Parser, def *AddFlagDef) *lib.Parser {
+				return p.
+					Flag(&def.Names, []string{"n", "name"}, "Flag names").
+					Flag(&def.Switch, []string{"s", "switch"}, "Switch flag").
+					Flag(&def.Description, []string{"d", "description"}, "Description")
 			})
-		} else {
-			return nil, fmt.Errorf("unexpected argument: %s (expected -A/--add)", arg)
+	
+	result := parser.Parse(args)
+	if len(result.Errors) > 0 {
+		return nil, result.Errors[0]
+	}
+	
+	// Convert to FlagDefinition
+	var defs []flags.FlagDefinition
+	for _, addFlag := range addFlags {
+		if addFlag.Names == "" {
+			return nil, fmt.Errorf("-A requires -n/--name to be specified")
 		}
+		
+		// Parse comma-separated names and infer prefix
+		nameList := strings.Split(addFlag.Names, ",")
+		var names []string
+		for _, name := range nameList {
+			name = strings.TrimSpace(name)
+			if name != "" {
+				// Infer: 1 char = short (-), multiple chars = long (--)
+				if len(name) == 1 {
+					names = append(names, "-"+name)
+				} else {
+					names = append(names, "--"+name)
+				}
+			}
+		}
+		
+		if len(names) == 0 {
+			return nil, fmt.Errorf("-A requires at least one flag name")
+		}
+		
+		defs = append(defs, flags.FlagDefinition{
+			Names:       names,
+			Switch:      addFlag.Switch,
+			Description: addFlag.Description,
+			Children:    []flags.FlagDefinition{},
+		})
 	}
 	
 	return defs, nil

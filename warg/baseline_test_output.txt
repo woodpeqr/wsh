@@ -1,0 +1,265 @@
+=========================================
+Running All Test Levels for warg
+=========================================
+
+┌─────────────────────────────────────┐
+│  LEVEL 1: Unit Tests                │
+└─────────────────────────────────────┘
+
+go test ./... -v
+?   	V-Woodpecker-V/wsh/warg/cmd/warg	[no test files]
+?   	V-Woodpecker-V/wsh/warg/examples/full_demo	[no test files]
+?   	V-Woodpecker-V/wsh/warg/examples/simple_demo	[no test files]
+=== RUN   TestFlagDefinitionJSON
+--- PASS: TestFlagDefinitionJSON (0.00s)
+PASS
+ok  	V-Woodpecker-V/wsh/warg/flags	(cached)
+=== RUN   TestParseInlineDefinition
+=== RUN   TestParseInlineDefinition/simple_bool_flag
+=== RUN   TestParseInlineDefinition/string_flag_with_single_name
+=== RUN   TestParseInlineDefinition/context_flag
+=== RUN   TestParseInlineDefinition/child_flag_with_parent
+=== RUN   TestParseInlineDefinition/invalid_format_-_missing_parts
+--- PASS: TestParseInlineDefinition (0.00s)
+    --- PASS: TestParseInlineDefinition/simple_bool_flag (0.00s)
+    --- PASS: TestParseInlineDefinition/string_flag_with_single_name (0.00s)
+    --- PASS: TestParseInlineDefinition/context_flag (0.00s)
+    --- PASS: TestParseInlineDefinition/child_flag_with_parent (0.00s)
+    --- PASS: TestParseInlineDefinition/invalid_format_-_missing_parts (0.00s)
+=== RUN   TestParseInlineDefinitions
+--- PASS: TestParseInlineDefinitions (0.00s)
+=== RUN   TestParseJSONDefinitions
+--- PASS: TestParseJSONDefinitions (0.00s)
+=== RUN   TestParseHeredocDefinition
+--- PASS: TestParseHeredocDefinition (0.00s)
+=== RUN   TestFlagDefinitionJSON
+--- PASS: TestFlagDefinitionJSON (0.00s)
+PASS
+ok  	V-Woodpecker-V/wsh/warg/internal/cli	(cached)
+?   	V-Woodpecker-V/wsh/warg/internal/log	[no test files]
+=== RUN   TestParseResult_Find
+--- PASS: TestParseResult_Find (0.00s)
+=== RUN   TestParseResult_Walk
+--- PASS: TestParseResult_Walk (0.00s)
+=== RUN   TestFlagValue_Find
+--- PASS: TestFlagValue_Find (0.00s)
+=== RUN   TestFlagValue_Walk
+--- PASS: TestFlagValue_Walk (0.00s)
+=== RUN   TestFlagValue_IsSwitch
+--- PASS: TestFlagValue_IsSwitch (0.00s)
+=== RUN   TestFlagValue_GetBool
+--- PASS: TestFlagValue_GetBool (0.00s)
+=== RUN   TestFlagValue_GetString
+--- PASS: TestFlagValue_GetString (0.00s)
+=== RUN   TestFormatOutput_JSON
+--- PASS: TestFormatOutput_JSON (0.00s)
+=== RUN   TestFormatOutput_Env
+--- PASS: TestFormatOutput_Env (0.00s)
+=== RUN   TestFormatOutput_Eval
+--- PASS: TestFormatOutput_Eval (0.00s)
+=== RUN   TestShellEscape
+=== RUN   TestShellEscape/simple
+=== RUN   TestShellEscape/with_space
+=== RUN   TestShellEscape/with'quote
+--- PASS: TestShellEscape (0.00s)
+    --- PASS: TestShellEscape/simple (0.00s)
+    --- PASS: TestShellEscape/with_space (0.00s)
+    --- PASS: TestShellEscape/with'quote (0.00s)
+=== RUN   TestFormatValue
+=== RUN   TestFormatValue/true
+=== RUN   TestFormatValue/false
+=== RUN   TestFormatValue/hello
+=== RUN   TestFormatValue/42
+--- PASS: TestFormatValue (0.00s)
+    --- PASS: TestFormatValue/true (0.00s)
+    --- PASS: TestFormatValue/false (0.00s)
+    --- PASS: TestFormatValue/hello (0.00s)
+    --- PASS: TestFormatValue/42 (0.00s)
+=== RUN   TestParser_Parse_SimpleBoolFlag
+--- PASS: TestParser_Parse_SimpleBoolFlag (0.00s)
+=== RUN   TestParser_Parse_StringFlag
+--- PASS: TestParser_Parse_StringFlag (0.00s)
+=== RUN   TestParser_Parse_LongFlag
+--- PASS: TestParser_Parse_LongFlag (0.00s)
+=== RUN   TestParser_Parse_CombinedShortFlags
+--- PASS: TestParser_Parse_CombinedShortFlags (0.00s)
+=== RUN   TestParser_Parse_ContextFlag
+--- PASS: TestParser_Parse_ContextFlag (0.00s)
+=== RUN   TestParser_Parse_CombinedContextFlags
+--- PASS: TestParser_Parse_CombinedContextFlags (0.00s)
+=== RUN   TestParser_Parse_ContextResolution
+--- PASS: TestParser_Parse_ContextResolution (0.00s)
+=== RUN   TestParser_Parse_UnknownFlag
+--- PASS: TestParser_Parse_UnknownFlag (0.00s)
+=== RUN   TestParser_Parse_MissingValue
+--- PASS: TestParser_Parse_MissingValue (0.00s)
+=== RUN   TestParser_Parse_MultipleFlags
+--- PASS: TestParser_Parse_MultipleFlags (0.00s)
+=== RUN   TestParser_Parse_DoubleDashSeparator
+--- PASS: TestParser_Parse_DoubleDashSeparator (0.00s)
+=== RUN   TestContext_Lookup
+--- PASS: TestContext_Lookup (0.00s)
+=== RUN   TestContext_ParentLookup
+--- PASS: TestContext_ParentLookup (0.00s)
+PASS
+ok  	V-Woodpecker-V/wsh/warg/internal/parser	(cached)
+=== RUN   TestParser_BasicTypes
+=== RUN   TestParser_BasicTypes/bool_flag
+=== RUN   TestParser_BasicTypes/string_flag
+=== RUN   TestParser_BasicTypes/int_flag
+=== RUN   TestParser_BasicTypes/float_flag
+--- PASS: TestParser_BasicTypes (0.00s)
+    --- PASS: TestParser_BasicTypes/bool_flag (0.00s)
+    --- PASS: TestParser_BasicTypes/string_flag (0.00s)
+    --- PASS: TestParser_BasicTypes/int_flag (0.00s)
+    --- PASS: TestParser_BasicTypes/float_flag (0.00s)
+=== RUN   TestParser_Slices
+=== RUN   TestParser_Slices/string_slice_with_repeated_flags
+=== RUN   TestParser_Slices/string_slice_with_comma-separated_values
+=== RUN   TestParser_Slices/int_slice_with_repeated_flags
+--- PASS: TestParser_Slices (0.00s)
+    --- PASS: TestParser_Slices/string_slice_with_repeated_flags (0.00s)
+    --- PASS: TestParser_Slices/string_slice_with_comma-separated_values (0.00s)
+    --- PASS: TestParser_Slices/int_slice_with_repeated_flags (0.00s)
+=== RUN   TestParser_MultipleFlags
+--- PASS: TestParser_MultipleFlags (0.00s)
+=== RUN   TestParser_Context
+--- PASS: TestParser_Context (0.00s)
+=== RUN   TestParser_CombinedShortFlags
+--- PASS: TestParser_CombinedShortFlags (0.00s)
+=== RUN   TestParser_CustomTypes
+--- PASS: TestParser_CustomTypes (0.00s)
+=== RUN   TestParser_Immutability
+--- PASS: TestParser_Immutability (0.00s)
+=== RUN   TestParser_ErrorHandling
+=== RUN   TestParser_ErrorHandling/unknown_flag
+=== RUN   TestParser_ErrorHandling/missing_value
+=== RUN   TestParser_ErrorHandling/invalid_int
+--- PASS: TestParser_ErrorHandling (0.00s)
+    --- PASS: TestParser_ErrorHandling/unknown_flag (0.00s)
+    --- PASS: TestParser_ErrorHandling/missing_value (0.00s)
+    --- PASS: TestParser_ErrorHandling/invalid_int (0.00s)
+=== RUN   TestParser_EmptyArgs
+--- PASS: TestParser_EmptyArgs (0.00s)
+=== RUN   TestParser_UnsignedInts
+--- PASS: TestParser_UnsignedInts (0.00s)
+=== RUN   TestParser_LongNames
+--- PASS: TestParser_LongNames (0.00s)
+PASS
+ok  	V-Woodpecker-V/wsh/warg/lib	(cached)
+
+┌─────────────────────────────────────┐
+│  LEVEL 2: CLI Integration Tests     │
+└─────────────────────────────────────┘
+
+=== Building warg CLI ===
+✓ Build successful
+
+=== Test 1: Inline Format ===
+✓ Inline format works
+
+=== Test 2: Multiple Flags ===
+✓ Multiple flags work
+
+=== Test 3: Context Flags ===
+✓ Context flags work
+
+=== Test 4: Example Scripts ===
+✓ demo-inline.sh works
+✓ demo-json.sh works
+✓ demo-heredoc.sh works
+
+=== Test 5: Error Handling ===
+✓ Error handling for invalid commands works
+✓ Error handling for unknown flags works
+
+===================================
+✓ All CLI integration tests passed!
+===================================
+
+┌─────────────────────────────────────┐
+│  LEVEL 3: Library Integration Tests │
+└─────────────────────────────────────┘
+
+=== RUN   TestBasicTypes
+=== RUN   TestBasicTypes/bool_flag
+=== RUN   TestBasicTypes/string_flag
+=== RUN   TestBasicTypes/int_flag
+=== RUN   TestBasicTypes/float_flag
+=== RUN   TestBasicTypes/multiple_flags_combined
+--- PASS: TestBasicTypes (0.00s)
+    --- PASS: TestBasicTypes/bool_flag (0.00s)
+    --- PASS: TestBasicTypes/string_flag (0.00s)
+    --- PASS: TestBasicTypes/int_flag (0.00s)
+    --- PASS: TestBasicTypes/float_flag (0.00s)
+    --- PASS: TestBasicTypes/multiple_flags_combined (0.00s)
+=== RUN   TestSliceTypes
+=== RUN   TestSliceTypes/string_slice_with_repeated_flags
+=== RUN   TestSliceTypes/string_slice_with_comma-separated_values
+=== RUN   TestSliceTypes/int_slice_with_repeated_flags
+=== RUN   TestSliceTypes/float_slice_with_repeated_flags
+--- PASS: TestSliceTypes (0.00s)
+    --- PASS: TestSliceTypes/string_slice_with_repeated_flags (0.00s)
+    --- PASS: TestSliceTypes/string_slice_with_comma-separated_values (0.00s)
+    --- PASS: TestSliceTypes/int_slice_with_repeated_flags (0.00s)
+    --- PASS: TestSliceTypes/float_slice_with_repeated_flags (0.00s)
+=== RUN   TestHierarchicalContexts
+=== RUN   TestHierarchicalContexts/basic_context
+=== RUN   TestHierarchicalContexts/combined_short_flags_with_context
+=== RUN   TestHierarchicalContexts/nested_contexts
+--- PASS: TestHierarchicalContexts (0.00s)
+    --- PASS: TestHierarchicalContexts/basic_context (0.00s)
+    --- PASS: TestHierarchicalContexts/combined_short_flags_with_context (0.00s)
+    --- PASS: TestHierarchicalContexts/nested_contexts (0.00s)
+=== RUN   TestCustomTypes
+=== RUN   TestCustomTypes/time.Duration
+=== RUN   TestCustomTypes/time.Duration_various_formats
+=== RUN   TestCustomTypes/time.Duration_various_formats/30s
+=== RUN   TestCustomTypes/time.Duration_various_formats/5m
+=== RUN   TestCustomTypes/time.Duration_various_formats/2h
+=== RUN   TestCustomTypes/time.Duration_various_formats/1h30m45s
+--- PASS: TestCustomTypes (0.00s)
+    --- PASS: TestCustomTypes/time.Duration (0.00s)
+    --- PASS: TestCustomTypes/time.Duration_various_formats (0.00s)
+        --- PASS: TestCustomTypes/time.Duration_various_formats/30s (0.00s)
+        --- PASS: TestCustomTypes/time.Duration_various_formats/5m (0.00s)
+        --- PASS: TestCustomTypes/time.Duration_various_formats/2h (0.00s)
+        --- PASS: TestCustomTypes/time.Duration_various_formats/1h30m45s (0.00s)
+=== RUN   TestImmutability
+=== RUN   TestImmutability/parser_instances_are_independent
+--- PASS: TestImmutability (0.00s)
+    --- PASS: TestImmutability/parser_instances_are_independent (0.00s)
+=== RUN   TestErrorHandling
+=== RUN   TestErrorHandling/unknown_flag
+=== RUN   TestErrorHandling/missing_value_for_value_flag
+=== RUN   TestErrorHandling/invalid_int_value
+=== RUN   TestErrorHandling/invalid_duration_value
+--- PASS: TestErrorHandling (0.00s)
+    --- PASS: TestErrorHandling/unknown_flag (0.00s)
+    --- PASS: TestErrorHandling/missing_value_for_value_flag (0.00s)
+    --- PASS: TestErrorHandling/invalid_int_value (0.00s)
+    --- PASS: TestErrorHandling/invalid_duration_value (0.00s)
+=== RUN   TestEdgeCases
+=== RUN   TestEdgeCases/empty_arguments
+=== RUN   TestEdgeCases/unsigned_integers
+=== RUN   TestEdgeCases/long_flag_names_with_dashes
+=== RUN   TestEdgeCases/bool_flag_with_explicit_false_not_supported
+--- PASS: TestEdgeCases (0.00s)
+    --- PASS: TestEdgeCases/empty_arguments (0.00s)
+    --- PASS: TestEdgeCases/unsigned_integers (0.00s)
+    --- PASS: TestEdgeCases/long_flag_names_with_dashes (0.00s)
+    --- PASS: TestEdgeCases/bool_flag_with_explicit_false_not_supported (0.00s)
+=== RUN   TestCombinedShortFlags
+=== RUN   TestCombinedShortFlags/multiple_switch_flags
+--- PASS: TestCombinedShortFlags (0.00s)
+    --- PASS: TestCombinedShortFlags/multiple_switch_flags (0.00s)
+=== RUN   TestRealWorldScenario
+=== RUN   TestRealWorldScenario/complete_application_flags
+--- PASS: TestRealWorldScenario (0.00s)
+    --- PASS: TestRealWorldScenario/complete_application_flags (0.00s)
+PASS
+ok  	warg-integration	0.544s
+
+=========================================
+✅ All tests passed successfully!
+=========================================
