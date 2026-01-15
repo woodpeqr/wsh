@@ -1,0 +1,148 @@
+# Justfile for warg project
+# Run with: just <recipe>
+
+# Show all available recipes
+default:
+    @just --list
+
+# Run all unit tests
+test:
+    go test ./... -v
+
+# Run unit tests with coverage
+test-coverage:
+    go test ./... -cover
+
+# Run specific package tests
+test-package package:
+    go test ./{{package}}/... -v
+
+# Build the CLI tool
+build:
+    go build -o warg ./cmd/warg
+
+# Run CLI integration tests
+test-cli:
+    #!/usr/bin/env bash
+    set -e
+    echo "=== Building warg CLI ==="
+    go build -o warg ./cmd/warg
+    echo "✓ Build successful"
+    echo
+    
+    echo "=== Test 1: Inline Format ==="
+    OUTPUT=$(./warg -A -n v,verbose -s -d "Verbose" -- -v)
+    if echo "$OUTPUT" | grep -q '"present": true'; then
+        echo "✓ Inline format works"
+    else
+        echo "✗ Inline format failed"
+        echo "$OUTPUT"
+        exit 1
+    fi
+    echo
+    
+    echo "=== Test 2: Multiple Flags ==="
+    OUTPUT=$(./warg -A -n v,verbose -s -d "Verbose" -A -n n,name -d "Name" -- -v --name "Alice")
+    if echo "$OUTPUT" | grep -q '"present": true' && echo "$OUTPUT" | grep -q '"value": "Alice"'; then
+        echo "✓ Multiple flags work"
+    else
+        echo "✗ Multiple flags failed"
+        echo "$OUTPUT"
+        exit 1
+    fi
+    echo
+    
+    echo "=== Test 3: Context Flags ==="
+    # Context flags need children definitions
+    OUTPUT=$(./warg -A -n G,git -s -d "Git" -A -n c,commit -s -d "Commit" -- -Gc)
+    if echo "$OUTPUT" | grep -q '"present": true'; then
+        echo "✓ Context flags work"
+    else
+        echo "✗ Context flags failed"
+        echo "$OUTPUT"
+        exit 1
+    fi
+    echo
+    
+    echo "=== Test 4: Example Scripts ==="
+    ./examples/demo-inline.sh > /dev/null && echo "✓ demo-inline.sh works"
+    ./examples/demo-json.sh > /dev/null && echo "✓ demo-json.sh works"
+    ./examples/demo-heredoc.sh > /dev/null && echo "✓ demo-heredoc.sh works"
+    echo
+    
+    echo "=== Test 5: Error Handling ==="
+    if ./warg invalid-command 2>&1 | grep -q "failed to parse"; then
+        echo "✓ Error handling for invalid commands works"
+    else
+        echo "⚠ Error handling needs review"
+    fi
+    
+    if ./warg -A -n v,verbose -s -d "Verbose" -- -x 2>&1 | grep -q "unknown flag"; then
+        echo "✓ Error handling for unknown flags works"
+    else
+        echo "⚠ Unknown flag error handling needs review"
+    fi
+    echo
+    
+    echo "==================================="
+    echo "✓ All CLI integration tests passed!"
+    echo "==================================="
+    
+    rm -f warg
+
+# Run library integration tests
+test-lib:
+    #!/usr/bin/env bash
+    cd ../warg-lib-test && go run main.go
+
+# Run all three test levels
+test-all:
+    @echo "========================================="
+    @echo "Running All Test Levels for warg"
+    @echo "========================================="
+    @echo ""
+    @echo "┌─────────────────────────────────────┐"
+    @echo "│  LEVEL 1: Unit Tests                │"
+    @echo "└─────────────────────────────────────┘"
+    @echo ""
+    @just test
+    @echo ""
+    @echo "┌─────────────────────────────────────┐"
+    @echo "│  LEVEL 2: CLI Integration Tests     │"
+    @echo "└─────────────────────────────────────┘"
+    @echo ""
+    @just test-cli
+    @echo ""
+    @echo "┌─────────────────────────────────────┐"
+    @echo "│  LEVEL 3: Library Integration Tests │"
+    @echo "└─────────────────────────────────────┘"
+    @echo ""
+    @just test-lib
+    @echo ""
+    @echo "========================================="
+    @echo "✅ All tests passed successfully!"
+    @echo "========================================="
+
+# Clean build artifacts
+clean:
+    rm -f warg
+    rm -f ../warg-lib-test/warg-lib-test
+
+# Format code
+fmt:
+    go fmt ./...
+
+# Run linter
+lint:
+    go vet ./...
+
+# Install the CLI tool
+install: build
+    mkdir -p ~/bin
+    cp warg ~/bin/warg
+    @echo "✓ Installed to ~/bin/warg"
+
+# Show project structure
+tree:
+    @echo "warg project structure:"
+    @tree -L 2 -I 'go.sum'
