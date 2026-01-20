@@ -1,3 +1,3 @@
-module V-Woodpecker-V/wsh/warg
+module github.com/woodpeqr/warg
 
-go 1.25.4
+go 1.25.5
