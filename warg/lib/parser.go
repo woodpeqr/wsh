@@ -48,9 +48,9 @@ type setter struct {
 
 // sliceContextInfo tracks information for repeatable slice contexts
 type sliceContextInfo struct {
-	slicePtr     interface{}
+	slicePtr     reflect.Value
 	elemType     reflect.Type
-	builder      interface{}
+	builderValue reflect.Value
 	childSetters []setter
 	currentIndex int
 }
@@ -98,7 +98,7 @@ func New() *Parser {
 //		Flag(&tags, []string{"t", "tag"}, "Tags (repeatable)")
 //
 // Returns a new Parser instance (this method does not modify the receiver).
-func (p *Parser) Flag(ptr interface{}, names []string, description string) *Parser {
+func (p *Parser) Flag(ptr any, names []string, description string) *Parser {
 	// Detect type and create appropriate setter
 	setterFn, isSwitch, err := createSetter(ptr)
 	if err != nil {
@@ -185,7 +185,7 @@ func (p *Parser) Flag(ptr interface{}, names []string, description string) *Pars
 //			})
 //
 // Returns a new Parser instance (this method does not modify the receiver).
-func (p *Parser) Context(ptr interface{}, names []string, description string, builder interface{}) *Parser {
+func (p *Parser) Context(ptr any, names []string, description string, builder any) *Parser {
 	v := reflect.ValueOf(ptr)
 	if v.Kind() != reflect.Ptr {
 		panic(fmt.Sprintf("Context: expected pointer, got %T", ptr))
@@ -201,23 +201,22 @@ func (p *Parser) Context(ptr interface{}, names []string, description string, bu
 
 	// Detect if this is a slice context or single context
 	if elem.Kind() == reflect.Slice {
-		return p.contextSlice(ptr, normalizedNames, description, builder)
+		return p.contextSlice(v, normalizedNames, description, reflect.ValueOf(builder))
 	}
-	return p.contextSingle(ptr, normalizedNames, description, builder)
+	return p.contextSingle(v, normalizedNames, description, reflect.ValueOf(builder))
 }
 
 // contextSingle handles non-repeatable struct contexts
-func (p *Parser) contextSingle(ptr interface{}, normalizedNames []string, description string, builder interface{}) *Parser {
+func (p *Parser) contextSingle(ptrValue reflect.Value, normalizedNames []string, description string, builderValue reflect.Value) *Parser {
 	// The builder should have signature: func(*Parser, *T) *Parser
-	builderVal := reflect.ValueOf(builder)
-	if builderVal.Kind() != reflect.Func {
-		panic(fmt.Sprintf("Context: builder must be a function, got %T", builder))
+	if builderValue.Kind() != reflect.Func {
+		panic(fmt.Sprintf("Context: builder must be a function, got %v", builderValue.Type()))
 	}
 
 	// Call the builder with New() parser and the struct pointer
-	results := builderVal.Call([]reflect.Value{
+	results := builderValue.Call([]reflect.Value{
 		reflect.ValueOf(New()),
-		reflect.ValueOf(ptr),
+		ptrValue,
 	})
 	
 	if len(results) != 1 {
@@ -258,19 +257,18 @@ func (p *Parser) contextSingle(ptr interface{}, normalizedNames []string, descri
 }
 
 // contextSlice handles repeatable slice contexts
-func (p *Parser) contextSlice(slicePtr interface{}, normalizedNames []string, description string, builder interface{}) *Parser {
-	sliceVal := reflect.ValueOf(slicePtr).Elem()
+func (p *Parser) contextSlice(slicePtrValue reflect.Value, normalizedNames []string, description string, builderValue reflect.Value) *Parser {
+	sliceVal := slicePtrValue.Elem()
 	elemType := sliceVal.Type().Elem()
 	
 	// The builder should have signature: func(*Parser, *T) *Parser where T is the slice element type
-	builderVal := reflect.ValueOf(builder)
-	if builderVal.Kind() != reflect.Func {
-		panic(fmt.Sprintf("Context: builder must be a function, got %T", builder))
+	if builderValue.Kind() != reflect.Func {
+		panic(fmt.Sprintf("Context: builder must be a function, got %v", builderValue.Type()))
 	}
 
 	// Create a temporary instance to build the child definitions
 	tempElem := reflect.New(elemType)
-	results := builderVal.Call([]reflect.Value{
+	results := builderValue.Call([]reflect.Value{
 		reflect.ValueOf(New()),
 		tempElem,
 	})
@@ -287,9 +285,9 @@ func (p *Parser) contextSlice(slicePtr interface{}, normalizedNames []string, de
 	// Store slice context info for later use during parsing
 	contextKey := normalizedNames[0]
 	sliceCtxInfo := &sliceContextInfo{
-		slicePtr:     slicePtr,
+		slicePtr:     slicePtrValue,
 		elemType:     elemType,
-		builder:      builder,
+		builderValue: builderValue,
 		childSetters: subParser.setters,
 		currentIndex: -1,
 	}
@@ -381,17 +379,16 @@ func (p *Parser) applySetters(parseResult *parser.ParseResult) error {
 			if sliceCtx, ok := p.sliceContexts[name]; ok {
 				// This is a slice context - append a new element
 				if fv.Present {
-					sliceVal := reflect.ValueOf(sliceCtx.slicePtr).Elem()
+					sliceVal := sliceCtx.slicePtr.Elem()
 					newElem := reflect.New(sliceCtx.elemType)
 					sliceVal.Set(reflect.Append(sliceVal, newElem.Elem()))
 					
 					currentIndex := sliceVal.Len() - 1
 					
 					// Create setters for this specific element
-					builderVal := reflect.ValueOf(sliceCtx.builder)
 					elemPtr := sliceVal.Index(currentIndex).Addr()
 					
-					builderResults := builderVal.Call([]reflect.Value{
+					builderResults := sliceCtx.builderValue.Call([]reflect.Value{
 						reflect.ValueOf(New()),
 						elemPtr,
 					})
@@ -444,7 +441,7 @@ func (p *Parser) applySetters(parseResult *parser.ParseResult) error {
 }
 
 // createSetter creates a setter function for the given pointer
-func createSetter(ptr interface{}) (func(string) error, bool, error) {
+func createSetter(ptr any) (func(string) error, bool, error) {
 	v := reflect.ValueOf(ptr)
 	if v.Kind() != reflect.Ptr {
 		return nil, false, fmt.Errorf("expected pointer, got %T", ptr)

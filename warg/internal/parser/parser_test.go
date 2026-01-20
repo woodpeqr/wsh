@@ -371,7 +371,7 @@ func TestParser_Parse_MultipleFlags(t *testing.T) {
 	}
 	
 	// Build a flat map to check values (similar to old behavior)
-	flat := make(map[string]interface{})
+	flat := make(map[string]any)
 	for _, flag := range result.Flags {
 		key := strings.TrimLeft(flag.Definition.Names[0], "-")
 		if flag.Definition.Switch {
@@ -381,7 +381,7 @@ func TestParser_Parse_MultipleFlags(t *testing.T) {
 		}
 	}
 
-	expected := map[string]interface{}{
+	expected := map[string]any{
 		"v": true,
 		"n": "Alice",
 		"d": true,

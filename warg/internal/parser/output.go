@@ -66,8 +66,8 @@ func formatEval(result *ParseResult) (string, error) {
 }
 
 // flattenResult converts the tree structure to a flat map for env/eval output
-func flattenResult(result *ParseResult) map[string]interface{} {
-	flat := make(map[string]interface{})
+func flattenResult(result *ParseResult) map[string]any {
+	flat := make(map[string]any)
 	for _, flag := range result.Flags {
 		flattenFlagValue(flag, flat)
 	}
@@ -75,7 +75,7 @@ func flattenResult(result *ParseResult) map[string]interface{} {
 }
 
 // flattenFlagValue recursively flattens a flag value and its children
-func flattenFlagValue(flag *FlagValue, flat map[string]interface{}) {
+func flattenFlagValue(flag *FlagValue, flat map[string]any) {
 	// Get a canonical name (use the first name, stripped of dashes)
 	canonicalName := flag.Definition.Names[0]
 	key := strings.TrimLeft(canonicalName, "-")
@@ -93,7 +93,7 @@ func flattenFlagValue(flag *FlagValue, flat map[string]interface{}) {
 }
 
 // formatValue converts a value to string representation
-func formatValue(value interface{}) string {
+func formatValue(value any) string {
 	switch v := value.(type) {
 	case bool:
 		if v {

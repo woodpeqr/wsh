@@ -8,13 +8,13 @@ import (
 func TestParser_BasicTypes(t *testing.T) {
 	tests := []struct {
 		name     string
-		setup    func() (*Parser, interface{})
+		setup    func() (*Parser, any)
 		args     []string
-		expected interface{}
+		expected any
 	}{
 		{
 			name: "bool flag",
-			setup: func() (*Parser, interface{}) {
+			setup: func() (*Parser, any) {
 				var verbose bool
 				p := New().Flag(&verbose, []string{"v", "verbose"}, "Verbose output")
 				return p, &verbose
@@ -24,7 +24,7 @@ func TestParser_BasicTypes(t *testing.T) {
 		},
 		{
 			name: "string flag",
-			setup: func() (*Parser, interface{}) {
+			setup: func() (*Parser, any) {
 				var name string
 				p := New().Flag(&name, []string{"n", "name"}, "User name")
 				return p, &name
@@ -34,7 +34,7 @@ func TestParser_BasicTypes(t *testing.T) {
 		},
 		{
 			name: "int flag",
-			setup: func() (*Parser, interface{}) {
+			setup: func() (*Parser, any) {
 				var count int
 				p := New().Flag(&count, []string{"c", "count"}, "Count")
 				return p, &count
@@ -44,7 +44,7 @@ func TestParser_BasicTypes(t *testing.T) {
 		},
 		{
 			name: "float flag",
-			setup: func() (*Parser, interface{}) {
+			setup: func() (*Parser, any) {
 				var rate float64
 				p := New().Flag(&rate, []string{"r", "rate"}, "Rate")
 				return p, &rate
