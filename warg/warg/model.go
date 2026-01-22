@@ -1,13 +1,24 @@
 package warg
 
-type FlagFactory[T any] func(ptr *T) *WargFlag[T]
-type FlagConstructor[T any] func(ptr *T, names []string) *WargFlag[any]
+type FlagFactory[Ctx any, Val any] func(
+	ptr *Ctx, 
+	names []string,
+	description string,
+	accessor func(*Ctx) *Val,
+	cmd CommandFunc[Val],
+	children ...FlagFactory[any, any],
+) *WargFlag[Val]
+type CommandFunc[T any] func(args *WargFlag[T]) error
 
 type WargFlag[T any] struct {
 	Names       []string
 	Description string
-	Value       any
+	Pointer     *T
 	Children    []*WargFlag[any]
+	Command     CommandFunc[WargFlag[T]]
+	IsSet       bool
+
+	isRoot bool
 }
 
 type TestStruct struct {
@@ -19,34 +30,20 @@ type TestStruct struct {
 }
 
 func T() {
-	var testArgs TestStruct
-	New(&testArgs, func (t *TestStruct) *WargFlag[TestStruct]{
-		Flag(&t.testBool, []string{"b"})
-		Flag(&t.testInt, []string{"i"})
-	})
+	var t TestStruct
+
+	Define(
+		Flag(&t.testBool, []string{"-b", "--bool"}),
+		Flag(&t.testInt, []string{"-i", "--int"}),
+		Context(&t.testObj, []string{"-O", "--obj", 
+			Flag(&?, []string{"-s", "--string"})}) // how to reference specific item in a slice???
+		)
 }
 
-func New[T any](ptr *T, flags FlagFactory[T]) []*WargFlag[T] {
-	return []*WargFlag[T]{}
-}
-
-func Flag[T any](ptr *T, names []string) FlagFactory[T] {
-	return func(ctx *T) *WargFlag[T] {
-		return &WargFlag[T]{
-			Names:       names,
-			Description: "a simple flag", //TODO: Fix
-			Value:       ptr,
-			Children:    make([]*WargFlag[any], 0),
-		}
+func Define(defs ...any) error {
+	root := &WargFlag[struct{}]{isRoot: true}
+	for _, d := range defs {
+		root.Children = append(root.Children, d())
 	}
-}
-
-func Context(ptr *bool, names []string, children FlagFactory[any]) FlagFactory[bool] {
-	return func(ctx *bool) *WargFlag[bool] {
-		return &WargFlag[bool]{
-			Names:       names,
-			Description: "a context flag",
-			Value:       ptr,
-		}
-	}
+	return nil
 }
