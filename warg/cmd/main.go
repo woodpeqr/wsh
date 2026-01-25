@@ -1,5 +1,7 @@
 package main
 
-type Args struct {
+import "github.com/woodpeqr/warg/warg"
 
+func main() {
+	warg.T()
 }

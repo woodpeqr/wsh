@@ -1,49 +1,140 @@
 package warg
 
-type FlagFactory[Ctx any, Val any] func(
-	ptr *Ctx, 
-	names []string,
-	description string,
-	accessor func(*Ctx) *Val,
-	cmd CommandFunc[Val],
-	children ...FlagFactory[any, any],
-) *WargFlag[Val]
-type CommandFunc[T any] func(args *WargFlag[T]) error
+import (
+	"encoding/json"
+	"fmt"
+)
 
-type WargFlag[T any] struct {
-	Names       []string
-	Description string
-	Pointer     *T
-	Children    []*WargFlag[any]
-	Command     CommandFunc[WargFlag[T]]
-	IsSet       bool
+type FlagFactory[T any] func() FlagDef[T]
+type rootFlag struct{}
+
+type Setter[T any] interface {
+	Set(T)
+}
+
+type flagSetter[T any] struct {
+	ptr *T
+}
+
+func PointsTo[T any](ptr *T) flagSetter[T] {
+	return flagSetter[T]{
+		ptr: ptr,
+	}
+}
+
+func (s flagSetter[T]) Set(val T) {
+	*s.ptr = val
+}
+
+type fieldSetter[T any] struct {
+	acc func() *T
+}
+
+func TakesFrom[T any](acc func() *T) fieldSetter[T] {
+	return fieldSetter[T]{
+		acc: acc,
+	}
+}
+
+func (s fieldSetter[T]) Set(val T) {
+	*s.acc() = val
+}
+
+type CommandFunc func(args any) error
+
+type FlagDef[T any] struct {
+	Names       []string       `json:"names"`
+	Description string         `json:"description"`
+	Children    []FlagDef[any] `json:"children"`
+	Command     CommandFunc    `json:"-"`
+	IsSet       bool           `json:"-"`
+	Setter      Setter[T]      `json:"-"`
 
 	isRoot bool
 }
 
 type TestStruct struct {
-	testBool bool
-	testInt  int
-	testObj  []struct {
-		testString string
-	}
+	TestBool bool
+	TestInt  int
+	TestObj  []TestObject
+}
+
+type TestObject struct {
+	TestString string
 }
 
 func T() {
 	var t TestStruct
 
-	Define(
-		Flag(&t.testBool, []string{"-b", "--bool"}),
-		Flag(&t.testInt, []string{"-i", "--int"}),
-		Context(&t.testObj, []string{"-O", "--obj", 
-			Flag(&?, []string{"-s", "--string"})}) // how to reference specific item in a slice???
-		)
+	flags := NewParser("Some general help",
+		WithFlag([]string{"-b", "--bool"}, "this is a bool", PointsTo(&t.TestBool)),
+		WithFlag([]string{"-i", "--integer"}, "this is an integer", PointsTo(&t.TestInt)),
+		WithContext([]string{"-o", "--object"}, "this is an object", PointsTo(&t.TestObj)),
+	)
+
+	j, _ := json.MarshalIndent(flags, "", "  ")
+	fmt.Printf("%v\n", string(j))
 }
 
-func Define(defs ...any) error {
-	root := &WargFlag[struct{}]{isRoot: true}
-	for _, d := range defs {
-		root.Children = append(root.Children, d())
-	}
+func NewParser(description string, defs ...FlagFactory[any]) error {
+	WithContext([]string{}, description, PointsTo(&struct{}{}), defs...)
 	return nil
+}
+
+func WithFlag[T any](names []string, description string, setter flagSetter[T]) FlagFactory[T] {
+	return func() FlagDef[T] {
+		return FlagDef[T]{
+			Names:       names,
+			Description: description,
+			Children:    []FlagDef[any]{},
+			Command:     nil,
+			Setter:      setter,
+		}
+	}
+}
+
+func WithContext[T any](names []string, description string, setter Setter[T], children ...FlagFactory[any]) FlagFactory[T] {
+	return func() FlagDef[T] {
+		childDefs := []FlagDef[any]{}
+		for _, def := range children {
+			childDefs = append(childDefs, def())
+		}
+
+		return FlagDef[T]{
+			Names:       names,
+			Description: description,
+			Children:    childDefs,
+			Command:     nil,
+			Setter:      setter,
+		}
+	}
+}
+
+func WithSubCommand[T any](names []string, description string, setter Setter[T], cmd CommandFunc, children ...FlagFactory[any]) FlagFactory[T] {
+	return func() FlagDef[T] {
+		childDefs := []FlagDef[any]{}
+		for _, def := range children {
+			childDefs = append(childDefs, def())
+		}
+
+		return FlagDef[T]{
+			Names:       names,
+			Description: description,
+			Children:    childDefs,
+			Command:     cmd,
+			Setter:      setter,
+		}
+	}
+}
+
+func WithField[T any](names []string, description string, setter Setter[T]) FlagFactory[T] {
+	return func() FlagDef[T] {
+		return FlagDef[T]{
+			Names:       names,
+			Description: description,
+			Children:    []FlagDef[any]{},
+			Command:     nil,
+			Setter:      setter,
+		}
+	}
 }
