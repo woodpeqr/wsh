@@ -1,0 +1,12 @@
+# Baseline — command names (resolved per Pkg Mgr via pkg_map.txt)
+git
+curl
+jq
+stow
+fzf
+ripgrep
+neovim
+bat
+fd
+starship
+zellij

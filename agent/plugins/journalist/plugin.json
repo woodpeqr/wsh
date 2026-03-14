@@ -1,0 +1,6 @@
+{
+  "name": "journalist",
+  "version": "0.1.0",
+  "description": "Persistent journaling layer — creates session notes and logs every conversation to Obsidian",
+  "hooks": "hooks/hooks.json"
+}

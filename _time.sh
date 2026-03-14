@@ -1,10 +1,10 @@
 #!/usr/bin/bash
 
 # GLOBAL VARS
-SOLIDTIME_URL=${SOLIDTIME_URL:="https://chrono.woodpeqr.net"}
+SOLIDTIME_URL=${SOLIDTIME_URL:?"\$SOLIDTIME_URL is required"}
 solidtime_api_url="$SOLIDTIME_URL/api/v1"
-SOLIDTIME_ORG=${SOLIDTIME_ORG:="Stiffy's Organization"}
-SOLIDTIME_PROJECT=${SOLIDTIME_PROJECT:="Work"}
+SOLIDTIME_ORG=${SOLIDTIME_ORG:?"\$SOLIDTIME_ORG is required"}
+SOLIDTIME_PROJECT=${SOLIDTIME_PROJECT:?"\$SOLIDTIME_PROJECT is required"}
 
 work_hours_per_day=8
 
@@ -17,6 +17,14 @@ solidtime_org_id=
 solidtime_project_id=
 
 # FLAGS
+## DATA FLAGS
+time_total=
+time_overtime=
+time_shift_begin=
+time_shift_end=
+time_earliest_leave=
+time_worked=
+## MODIFIER FLAGS
 time_offline=
 time_from=30
 time_start=
