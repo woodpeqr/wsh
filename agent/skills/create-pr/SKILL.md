@@ -19,7 +19,7 @@ Convert the current branch name to a PR title using these rules:
 
 **If the branch contains `/`:** split into `<type>/<rest>`
 - Capitalize the type (e.g. `task` → `Task`, `chore` → `Chore`, `feat` → `Feat`)
-- Check if `<rest>` begins with a JIRA-like identifier: two hyphen-separated tokens where the first is letters and the second is alphanumeric (e.g. `nh-111`, `no-jira`, `abc-456`)
+- Check if `<rest>` begins with a JIRA-like identifier: two hyphen-separated tokens where the first is letters and the second is alphanumeric (e.g. `ji-111`, `no-jira`, `abc-456`)
   - If yes: extract the identifier (uppercase), treat the remainder as the label
   - If no: treat the entire `<rest>` as the label
 - Convert the label from kebab-case to Title Case
@@ -30,7 +30,7 @@ Convert the current branch name to a PR title using these rules:
 - No type prefix
 
 **Examples:**
-- `task/nh-111-do-something` → `Task: NH-111 Do Something`
+- `task/ji-111-do-something` → `Task: JI-111 Do Something`
 - `chore/fix-one-thing` → `Chore: Fix One Thing`
 - `task/no-jira-quick-fix-of-something` → `Task: NO-JIRA Quick Fix of Something`
 - `feat/abc-456-new-feature` → `Feat: ABC-456 New Feature`
