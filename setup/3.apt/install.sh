@@ -27,8 +27,8 @@ while IFS= read -r pkg; do
             PYENV_ROOT="${PYENV_ROOT:-/opt/pyenv}"
             PYTHON_VERSION="${PYTHON_VERSION:-3.12.9}"
             export PYENV_ROOT
-            sudo mkdir -p "$PYENV_ROOT" && sudo chown "$(id -u):$(id -g)" "$PYENV_ROOT"
-            curl https://pyenv.run | bash \
+            sudo git clone https://github.com/pyenv/pyenv.git "$PYENV_ROOT" \
+                && sudo chown -R "$(id -u):$(id -g)" "$PYENV_ROOT" \
                 && export PATH="$PYENV_ROOT/bin:$PATH" \
                 && pyenv install "$PYTHON_VERSION" \
                 && pyenv global "$PYTHON_VERSION" \
