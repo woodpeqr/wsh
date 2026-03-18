@@ -16,13 +16,30 @@ _setup_dotfiles_dir() {
     echo "${setup_dir_arg:-$wsh_dir/dotfiles}"
 }
 
-# Read a pkg file into a named array; skip blank lines and comments
+# Execute a .sh pkg script and collect output into a named array; skip blank lines and comments
 _setup_read_pkgs() {
     local file="$1" arr_name="$2"
+    [[ ! -f "$file" ]] && return
     while IFS= read -r line; do
         [[ -z "$line" || "$line" == \#* ]] && continue
         eval "${arr_name}+=(\"\$line\")"
-    done < "$file"
+    done < <("$file")
+}
+
+# Find a .sh pkg file; outputs path or nothing
+_setup_find_pkgfile() {
+    local base="$1"
+    [[ -f "${base}.sh" ]] && echo "${base}.sh" || true
+}
+
+# Resolve a command name to PM-specific name via pkg_map.sh; empty = skip
+_setup_resolve_pkg() {
+    local map_sh="$1" pkg="$2"
+    if [[ -f "$map_sh" && -x "$map_sh" ]]; then
+        "$map_sh" "$pkg"
+    else
+        echo "$pkg"
+    fi
 }
 
 # ── public functions ──────────────────────────────────────────────────────────
@@ -99,8 +116,6 @@ setup_do_packages() {
     local setup_dir="$wsh_dir/setup"
     [[ ! -d "$setup_dir" ]] && { error "setup dir not found: $setup_dir"; exit 1; }
 
-    local base_pkgs="$setup_dir/pkgs.txt"
-
     # Iterate PM dirs in sorted order (numeric prefix controls order)
     local -a pm_dirs=()
     while IFS= read -r -d '' d; do
@@ -116,14 +131,17 @@ setup_do_packages() {
 
         local -a raw=()
 
-        if [[ -f "$pm_dir/pkgs_only.txt" ]]; then
+        local pkgs_onlyf; pkgs_onlyf=$(_setup_find_pkgfile "$pm_dir/pkgs_only")
+        if [[ -n "$pkgs_onlyf" ]]; then
             # Override present: use exclusively (empty file = install nothing)
-            _setup_read_pkgs "$pm_dir/pkgs_only.txt" raw
+            _setup_read_pkgs "$pkgs_onlyf" raw
         else
             # Combine base + additions, then deduplicate preserving order via awk
+            local base_pkgsf; base_pkgsf=$(_setup_find_pkgfile "$setup_dir/pkgs")
+            local pkgs_addf;  pkgs_addf=$(_setup_find_pkgfile "$pm_dir/pkgs_add")
             local -a combined=()
-            [[ -f "$base_pkgs"           ]] && _setup_read_pkgs "$base_pkgs"           combined
-            [[ -f "$pm_dir/pkgs_add.txt" ]] && _setup_read_pkgs "$pm_dir/pkgs_add.txt" combined
+            [[ -n "$base_pkgsf" ]] && _setup_read_pkgs "$base_pkgsf" combined
+            [[ -n "$pkgs_addf"  ]] && _setup_read_pkgs "$pkgs_addf"  combined
             while IFS= read -r line; do
                 raw+=("$line")
             done < <(printf '%s\n' "${combined[@]}" | awk '!seen[$0]++')
@@ -131,15 +149,12 @@ setup_do_packages() {
 
         [[ ${#raw[@]} -eq 0 ]] && { log "  no packages, skipping"; continue; }
 
-        # Resolve command names → package names via pkg_map.txt
-        local map_file="$pm_dir/pkg_map.txt"
+        # Resolve command names → PM-specific names via pkg_map.sh; empty = skip
+        local map_sh="$pm_dir/pkg_map.sh"
         local -a resolved=()
         for p in "${raw[@]}"; do
-            local mapped="$p"
-            if [[ -f "$map_file" ]]; then
-                local entry; entry=$(grep -m1 "^${p}=" "$map_file" 2>/dev/null || true)
-                [[ -n "$entry" ]] && mapped="${entry#*=}"
-            fi
+            local mapped; mapped=$(_setup_resolve_pkg "$map_sh" "$p")
+            [[ -z "$mapped" ]] && continue
             resolved+=("$mapped")
         done
 

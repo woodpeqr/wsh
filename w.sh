@@ -426,18 +426,21 @@ if [[ -n $init ]]; then
     stdout "compinit"
     stdout "eval $(starship init zsh)"
     stdout 'bindkey -v'
-elif [[ -n $init_pyenv ]]; then
+fi
+if [[ -n $init_pyenv ]]; then
     debug "initializing pyenv"
     stdout 'export PYENV_ROOT="$HOME/.pyenv"'
     stdout '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"'
     stdout 'eval "$(command pyenv init - zsh)"'
-elif [[ -n $init_nvm ]]; then
+fi
+if [[ -n $init_nvm ]]; then
     debug "initializing nvm"
     stdout 'NVM_DIR="${NVM_DIR:-$HOME/.nvm}"'
     stdout 'export NVM_DIR'
     stdout '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"'
     stdout '[ -s "$NVM_DIR/etc/bash_completion.d/nvm" ] && \. "$NVM_DIR/etc/bash_completion.d/nvm"'
-elif [[ -n $init_plugins ]]; then
+fi
+if [[ -n $init_plugins ]]; then
     debug "initializing zsh plugins"
     if [[ -n "$ZSH_PLUGIN_DIRS" ]]; then
         IFS=':' read -ra _plugin_dirs <<<"$ZSH_PLUGIN_DIRS"
@@ -447,12 +450,14 @@ elif [[ -n $init_plugins ]]; then
             done
         done
     fi
-elif [[ -n $init_functions ]]; then
+fi
+if [[ -n $init_functions ]]; then
     debug "initializing shell functions"
     stdout 'git_sign_branch() {'
     stdout "    git rebase --exec 'git commit --amend --no-edit -S' \"\$(git merge-base HEAD \"\${1:-main}\")\""
     stdout '}'
-elif [[ -n $setup ]]; then
+fi
+if [[ -n $setup ]]; then
     if [[ -n $setup_list ]]; then
         setup_do_list
     elif [[ -n $setup_packages ]]; then
@@ -462,16 +467,20 @@ elif [[ -n $setup ]]; then
     else
         setup_do_init
     fi
-elif [[ -n $time ]]; then
+fi
+if [[ -n $time ]]; then
+    _time_validate_env
     debug "yay"
     solidtime_get "/users/me/memberships"
-elif [[ -n $agent ]]; then
+fi
+if [[ -n $agent ]]; then
     if [[ -n $agent_init ]]; then
         agent_do_init
     else
         agent_do_run
     fi
-elif [[ -n $git ]]; then
+fi
+if [[ -n $git ]]; then
     debug "git options"
     if [[ -n $git_creds ]]; then
         case "$git_cred_arg" in
@@ -494,8 +503,4 @@ elif [[ -n $git ]]; then
             ;;
         esac
     fi
-else
-    log "no operation defined"
-    usage
-    exit 1
 fi

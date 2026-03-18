@@ -1,12 +1,15 @@
 #!/usr/bin/bash
 
 # GLOBAL VARS
-SOLIDTIME_URL=${SOLIDTIME_URL:?"\$SOLIDTIME_URL is required"}
-solidtime_api_url="$SOLIDTIME_URL/api/v1"
-SOLIDTIME_ORG=${SOLIDTIME_ORG:?"\$SOLIDTIME_ORG is required"}
-SOLIDTIME_PROJECT=${SOLIDTIME_PROJECT:?"\$SOLIDTIME_PROJECT is required"}
-
+solidtime_api_url=
 work_hours_per_day=8
+
+_time_validate_env() {
+    SOLIDTIME_URL=${SOLIDTIME_URL:?"\$SOLIDTIME_URL is required"}
+    solidtime_api_url="$SOLIDTIME_URL/api/v1"
+    SOLIDTIME_ORG=${SOLIDTIME_ORG:?"\$SOLIDTIME_ORG is required"}
+    SOLIDTIME_PROJECT=${SOLIDTIME_PROJECT:?"\$SOLIDTIME_PROJECT is required"}
+}
 
 # LIBS
 source "$(dirname $(realpath "$0"))/_utils.sh"
