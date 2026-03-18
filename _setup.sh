@@ -5,6 +5,7 @@ setup_delete=
 setup_restow=
 setup_list=
 setup_packages=
+setup_shell=
 
 # ARGS
 setup_dir_arg=
@@ -174,4 +175,10 @@ setup_do_packages() {
         debug "→ ${#resolved[@]} packages to $pm_name"
         printf '%s\n' "${resolved[@]}" | "$install_sh"
     done
+}
+
+setup_do_shell() {
+    printf 'export PATH="%s:$PATH"\n' "$wsh_dir" > "$HOME/.zshenv"
+    printf 'eval "$(%s/w.sh -IA)"\n' "$wsh_dir" > "$HOME/.zshrc"
+    log "wrote ~/.zshenv and ~/.zshrc"
 }

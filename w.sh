@@ -24,6 +24,7 @@ setup_delete=
 setup_restow=
 setup_list=
 setup_packages=
+setup_shell=
 ##TIME
 time=
 ##GIT
@@ -75,6 +76,7 @@ usage_init() {
     print_option 1 "-p" "--pyenv" "" "init pyenv"
     print_option 1 "-z" "--plugins" "" "init zsh plugins from \$ZSH_PLUGIN_DIRS"
     print_option 1 "-f" "--functions" "" "init shell utility functions"
+    print_option 1 "-A" "--all" "" "init all (nvm, pyenv, plugins, functions)"
 }
 
 usage_setup() {
@@ -86,6 +88,7 @@ usage_setup() {
     print_option 1 "-R" "--restow" "" "restow listed packages"
     print_option 1 "-l" "--list" "" "list packages with deployed status"
     print_option 1 "-P" "--packages" "" "run SBOM package install"
+    print_option 1 "-s" "--shell" "" "write ~/.zshrc and ~/.zshenv"
 }
 
 usage_time() {
@@ -225,6 +228,12 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
             --functions | -f)
                 init_functions=1
                 ;;
+            --all | -A)
+                init_nvm=1
+                init_pyenv=1
+                init_plugins=1
+                init_functions=1
+                ;;
             *)
                 unknown_flag "${flags[$i]}"
                 ;;
@@ -262,6 +271,9 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
                 ;;
             --packages | -P)
                 setup_packages=1
+                ;;
+            --shell | -s)
+                setup_shell=1
                 ;;
             --* | -*)
                 unknown_flag "${flags[$i]}"
@@ -460,6 +472,9 @@ if [[ -n $setup ]]; then
         setup_do_stow
     else
         setup_do_init
+    fi
+    if [[ -n $setup_shell ]]; then
+        setup_do_shell
     fi
 fi
 if [[ -n $time ]]; then
