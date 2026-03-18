@@ -1,10 +1,8 @@
 #!/bin/bash
 set -eu
 
-pkgs=""
-while IFS= read -r pkg; do
-    [ -n "$pkg" ] && pkgs="$pkgs $pkg"
-done
+pkgs="${WSH_PKGS_PREPEND:-} ${WSH_PKGS_BASE:-} ${WSH_PKGS_APPEND:-}"
+pkgs=$(echo "$pkgs" | tr '\n' ' ' | tr -s ' ' | sed 's/^ //;s/ $//')
 [ -z "$pkgs" ] && exit 0
 
 # shellcheck disable=SC2086

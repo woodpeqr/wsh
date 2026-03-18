@@ -24,7 +24,7 @@ _setup_read_pkgs() {
     while IFS= read -r line; do
         [[ -z "$line" || "$line" == \#* ]] && continue
         eval "${arr_name}+=(\"\$line\")"
-    done < <("$file")
+    done < <(bash "$file")
 }
 
 # Find a .sh pkg file; outputs path or nothing
@@ -139,43 +139,45 @@ setup_do_packages() {
         command -v "$pm_name" &>/dev/null || { debug "skipping $pm_name: not in PATH"; continue; }
         log "--- $pm_name ---"
 
-        local -a raw=()
+        local -a prepend_raw=() base_raw=() append_raw=()
 
         local pkgs_onlyf; pkgs_onlyf=$(_setup_find_pkgfile "$pm_dir/pkgs_only")
         if [[ -n "$pkgs_onlyf" ]]; then
-            # Override present: use exclusively (empty file = install nothing)
-            _setup_read_pkgs "$pkgs_onlyf" raw
+            _setup_read_pkgs "$pkgs_onlyf" base_raw
         else
-            # Combine prepend + base + append, then deduplicate preserving order via awk
             local base_pkgsf;    base_pkgsf=$(_setup_find_pkgfile "$setup_dir/pkgs")
             local pkgs_prependf; pkgs_prependf=$(_setup_find_pkgfile "$pm_dir/pkgs_prepend")
             local pkgs_appendf;  pkgs_appendf=$(_setup_find_pkgfile "$pm_dir/pkgs_append")
-            local -a combined=()
-            [[ -n "$pkgs_prependf" ]] && _setup_read_pkgs "$pkgs_prependf" combined
-            [[ -n "$base_pkgsf"    ]] && _setup_read_pkgs "$base_pkgsf"    combined
-            [[ -n "$pkgs_appendf"  ]] && _setup_read_pkgs "$pkgs_appendf"  combined
-            while IFS= read -r line; do
-                raw+=("$line")
-            done < <(printf '%s\n' "${combined[@]}" | awk '!seen[$0]++')
+            [[ -n "$pkgs_prependf" ]] && _setup_read_pkgs "$pkgs_prependf" prepend_raw
+            [[ -n "$base_pkgsf"    ]] && _setup_read_pkgs "$base_pkgsf"    base_raw
+            [[ -n "$pkgs_appendf"  ]] && _setup_read_pkgs "$pkgs_appendf"  append_raw
         fi
 
-        [[ ${#raw[@]} -eq 0 ]] && { log "  no packages, skipping"; continue; }
-
-        # Resolve command names → PM-specific names via pkg_map.sh; empty = skip
         local map_sh="$pm_dir/pkg_map.sh"
-        local -a resolved=()
-        for p in "${raw[@]}"; do
-            local mapped; mapped=$(_setup_resolve_pkg "$map_sh" "$p")
-            [[ -z "$mapped" ]] && continue
-            resolved+=("$mapped")
+        local -a prepend_resolved=() base_resolved=() append_resolved=()
+        for p in "${prepend_raw[@]}"; do
+            local m; m=$(_setup_resolve_pkg "$map_sh" "$p"); [[ -n "$m" ]] && prepend_resolved+=("$m")
         done
+        for p in "${base_raw[@]}"; do
+            local m; m=$(_setup_resolve_pkg "$map_sh" "$p"); [[ -n "$m" ]] && base_resolved+=("$m")
+        done
+        for p in "${append_raw[@]}"; do
+            local m; m=$(_setup_resolve_pkg "$map_sh" "$p"); [[ -n "$m" ]] && append_resolved+=("$m")
+        done
+
+        if [[ ${#prepend_resolved[@]} -eq 0 && ${#base_resolved[@]} -eq 0 && ${#append_resolved[@]} -eq 0 ]]; then
+            log "  no packages, skipping"; continue
+        fi
 
         local install_sh="$pm_dir/install.sh"
         [[ ! -f "$install_sh" ]] && { error "install.sh not found: $install_sh"; continue; }
         [[ ! -x "$install_sh" ]] && { error "install.sh not executable: $install_sh"; continue; }
 
-        debug "→ ${#resolved[@]} packages to $pm_name"
-        printf '%s\n' "${resolved[@]}" | "$install_sh" || return $?
+        debug "→ prepend:${#prepend_resolved[@]} base:${#base_resolved[@]} append:${#append_resolved[@]}"
+        WSH_PKGS_PREPEND="${prepend_resolved[*]:-}" \
+        WSH_PKGS_BASE="${base_resolved[*]:-}" \
+        WSH_PKGS_APPEND="${append_resolved[*]:-}" \
+        "$install_sh" || return $?
     done
 }
 
