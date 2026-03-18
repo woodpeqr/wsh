@@ -31,6 +31,7 @@ git=
 git_creds=
 ##AGENT
 agent=
+agent_super=
 
 # ARGS
 ## SETUP
@@ -117,6 +118,7 @@ usage_agent() {
     print_option 2 "-o" "--copilot" "" "copilot only (~/.copilot)"
     print_option 1 "-a" "--claude" "" "run claude"
     print_option 1 "-o" "--copilot" "" "run copilot"
+    print_option 1 "-S" "--super" "" "bypass permission checks"
     print_option 1 "-p" "--prompt" "file" "run tool with a .md file as system prompt"
     print_option 1 "--" "" "" "pass remaining args to the tool"
 }
@@ -365,6 +367,9 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
             --copilot | -o)
                 agent_tool=copilot
                 ;;
+            --super | -S)
+                agent_super=1
+                ;;
             --prompt | -p)
                 if [[ $((i + 1)) -lt "${#flags[@]}" ]]; then
                     ((i++))
@@ -375,7 +380,7 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
                 ;;
             --)
                 for ((i++; i < "${#flags[@]}"; i++)); do
-                    agent_extra_args+=("${flags[$i]}")
+                    agent_args+=("${flags[$i]}")
                 done
                 break
                 ;;
@@ -421,24 +426,15 @@ done
 
 if [[ -n $init ]]; then
     debug "initializing autocompletions"
-    stdout 'fpath=($HOME/.config/wsh/completions $fpath)'
-    stdout "autoload -Uz compinit"
-    stdout "compinit"
-    stdout "eval $(starship init zsh)"
-    stdout 'bindkey -v'
+    cat "$wsh_dir/init/base.sh"
 fi
 if [[ -n $init_pyenv ]]; then
     debug "initializing pyenv"
-    stdout 'export PYENV_ROOT="$HOME/.pyenv"'
-    stdout '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"'
-    stdout 'eval "$(command pyenv init - zsh)"'
+    cat "$wsh_dir/init/pyenv.sh"
 fi
 if [[ -n $init_nvm ]]; then
     debug "initializing nvm"
-    stdout 'NVM_DIR="${NVM_DIR:-$HOME/.nvm}"'
-    stdout 'export NVM_DIR'
-    stdout '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"'
-    stdout '[ -s "$NVM_DIR/etc/bash_completion.d/nvm" ] && \. "$NVM_DIR/etc/bash_completion.d/nvm"'
+    cat "$wsh_dir/init/nvm.sh"
 fi
 if [[ -n $init_plugins ]]; then
     debug "initializing zsh plugins"
@@ -446,16 +442,14 @@ if [[ -n $init_plugins ]]; then
         IFS=':' read -ra _plugin_dirs <<<"$ZSH_PLUGIN_DIRS"
         for _plugin_dir in "${_plugin_dirs[@]}"; do
             for _plugin_file in "$_plugin_dir"/*.zsh; do
-                [[ -f "$_plugin_file" ]] && stdout "source \"$_plugin_file\""
+                [[ -f "$_plugin_file" ]] && echo "source \"$_plugin_file\""
             done
         done
     fi
 fi
 if [[ -n $init_functions ]]; then
     debug "initializing shell functions"
-    stdout 'git_sign_branch() {'
-    stdout "    git rebase --exec 'git commit --amend --no-edit -S' \"\$(git merge-base HEAD \"\${1:-main}\")\""
-    stdout '}'
+    cat "$wsh_dir/init/functions.sh"
 fi
 if [[ -n $setup ]]; then
     if [[ -n $setup_list ]]; then

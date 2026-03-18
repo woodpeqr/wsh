@@ -243,6 +243,8 @@ _w_sh() {
                     '--claude:run claude'
                     '-o:run copilot'
                     '--copilot:run copilot'
+                    '-S:bypass permission checks'
+                    '--super:bypass permission checks'
                     '-p:system prompt .md file'
                     '--prompt:system prompt .md file'
                     '--:pass remaining args to tool'

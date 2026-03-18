@@ -6,11 +6,12 @@ export W_JOURNAL_DIR="${W_JOURNAL_DIR:-$HOME/Documents/journal}"
 agent_init=
 agent_claude=
 agent_copilot=
+agent_super=
 
 # ARGS
 agent_tool=
 agent_prompt_arg=
-agent_extra_args=()
+agent_args=()
 
 _agent_link_dir() {
     local src="$1" dst="$2" label="$3"
@@ -65,13 +66,19 @@ agent_do_init() {
 
 agent_do_run() {
     local tool="${agent_tool:-claude}"
-    if [[ -n "$agent_prompt_arg" ]]; then
-        if [[ ! -f "$agent_prompt_arg" ]]; then
-            error "prompt file not found: $agent_prompt_arg"
-            exit 1
+
+    if [[ -n "$agent_super" ]]; then
+        if [[ "$tool" == copilot ]]; then
+            agent_args=(--allow-all "${agent_args[@]}")
+        else
+            agent_args=(--permission-mode=bypassPermissions "${agent_args[@]}")
         fi
-        "$tool" --system-prompt "$(cat "$agent_prompt_arg")" "${agent_extra_args[@]}"
-    else
-        "$tool" "${agent_extra_args[@]}"
     fi
+
+    if [[ -n "$agent_prompt_arg" ]]; then
+        [[ ! -f "$agent_prompt_arg" ]] && { error "prompt file not found: $agent_prompt_arg"; exit 1; }
+        agent_args=(--system-prompt "$(cat "$agent_prompt_arg")" "${agent_args[@]}")
+    fi
+
+    "$tool" "${agent_args[@]}"
 }

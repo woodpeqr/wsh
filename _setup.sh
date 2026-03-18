@@ -82,6 +82,15 @@ setup_do_stow() {
     "${cmd[@]}"
 }
 
+_is_stow_linked() {
+    local path="$1"
+    while [[ "$path" != "$HOME" && "$path" != "/" ]]; do
+        [[ -L "$path" ]] && return 0
+        path="${path%/*}"
+    done
+    return 1
+}
+
 setup_do_list() {
     local dotfiles_dir
     dotfiles_dir=$(_setup_dotfiles_dir)
@@ -99,7 +108,7 @@ setup_do_list() {
         while IFS= read -r -d '' f; do
             any=1
             local rel="${f#$pkg_dir}"
-            [[ ! -L "$HOME/$rel" ]] && { all_ok=0; break; }
+            _is_stow_linked "$HOME/$rel" || { all_ok=0; break; }
         done < <(find "$pkg_dir" -type f -print0)
 
         local icon
