@@ -173,7 +173,7 @@ setup_do_packages() {
         [[ ! -x "$install_sh" ]] && { error "install.sh not executable: $install_sh"; continue; }
 
         debug "→ ${#resolved[@]} packages to $pm_name"
-        printf '%s\n' "${resolved[@]}" | "$install_sh"
+        printf '%s\n' "${resolved[@]}" | "$install_sh" || return $?
     done
 }
 

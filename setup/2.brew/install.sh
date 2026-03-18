@@ -1,5 +1,5 @@
 #!/bin/bash
-set -u
+set -eu
 
 pkgs=""
 while IFS= read -r pkg; do

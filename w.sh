@@ -467,7 +467,7 @@ if [[ -n $setup ]]; then
     if [[ -n $setup_list ]]; then
         setup_do_list
     elif [[ -n $setup_packages ]]; then
-        setup_do_packages
+        setup_do_packages || exit $?
     elif [[ -n $setup_simulate || -n $setup_delete || -n $setup_restow || -n $setup_dir_arg || ${#setup_pkg_args[@]} -gt 0 ]]; then
         setup_do_stow
     else
