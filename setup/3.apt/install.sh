@@ -2,12 +2,31 @@
 set -eu
 
 apt_pkgs=""
+special_pkgs=()
 failed=()
 
 _fail() { failed+=("$1: $2"); }
 
+# Pass 1: collect
 while IFS= read -r pkg; do
     [ -z "$pkg" ] && continue
+    case "$pkg" in
+        starship|nvm|pyenv|goenv|zellij|claude-code|github-copilot)
+            special_pkgs+=("$pkg") ;;
+        *)
+            apt_pkgs="$apt_pkgs $pkg" ;;
+    esac
+done
+
+# Pass 2: batch apt install (build deps available before any special installer)
+# shellcheck disable=SC2086
+if [ -n "$apt_pkgs" ]; then
+    sudo apt-get install -y --no-install-recommends $apt_pkgs \
+        || _fail "apt-get" "failed to install:$apt_pkgs"
+fi
+
+# Pass 3: special installers in stream order
+for pkg in "${special_pkgs[@]}"; do
     case "$pkg" in
         starship)
             curl -sS https://starship.rs/install.sh | sh -s -- --yes \
@@ -55,16 +74,8 @@ while IFS= read -r pkg; do
         github-copilot)
             curl -fsSL https://gh.io/copilot-install | bash \
                 || _fail "$pkg" "curl install failed" ;;
-        *)
-            apt_pkgs="$apt_pkgs $pkg" ;;
     esac
 done
-
-# shellcheck disable=SC2086
-if [ -n "$apt_pkgs" ]; then
-    sudo apt-get install -y --no-install-recommends $apt_pkgs \
-        || _fail "apt-get" "failed to install:$apt_pkgs"
-fi
 
 if [ ${#failed[@]} -gt 0 ]; then
     echo "ERROR: the following packages failed to install:" >&2
