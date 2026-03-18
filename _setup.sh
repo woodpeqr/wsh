@@ -146,12 +146,14 @@ setup_do_packages() {
             # Override present: use exclusively (empty file = install nothing)
             _setup_read_pkgs "$pkgs_onlyf" raw
         else
-            # Combine base + additions, then deduplicate preserving order via awk
-            local base_pkgsf; base_pkgsf=$(_setup_find_pkgfile "$setup_dir/pkgs")
-            local pkgs_addf;  pkgs_addf=$(_setup_find_pkgfile "$pm_dir/pkgs_add")
+            # Combine prepend + base + append, then deduplicate preserving order via awk
+            local base_pkgsf;    base_pkgsf=$(_setup_find_pkgfile "$setup_dir/pkgs")
+            local pkgs_prependf; pkgs_prependf=$(_setup_find_pkgfile "$pm_dir/pkgs_prepend")
+            local pkgs_appendf;  pkgs_appendf=$(_setup_find_pkgfile "$pm_dir/pkgs_append")
             local -a combined=()
-            [[ -n "$base_pkgsf" ]] && _setup_read_pkgs "$base_pkgsf" combined
-            [[ -n "$pkgs_addf"  ]] && _setup_read_pkgs "$pkgs_addf"  combined
+            [[ -n "$pkgs_prependf" ]] && _setup_read_pkgs "$pkgs_prependf" combined
+            [[ -n "$base_pkgsf"    ]] && _setup_read_pkgs "$base_pkgsf"    combined
+            [[ -n "$pkgs_appendf"  ]] && _setup_read_pkgs "$pkgs_appendf"  combined
             while IFS= read -r line; do
                 raw+=("$line")
             done < <(printf '%s\n' "${combined[@]}" | awk '!seen[$0]++')
