@@ -22,9 +22,11 @@ _install_group() {
         esac
     done <<< "$(printf '%s\n' $group)"
 
-    # shellcheck disable=SC2086
-    [ -n "$apt_pkgs" ] && sudo apt-get install -y --no-install-recommends $apt_pkgs \
-        || _fail "apt-get" "failed to install:$apt_pkgs"
+    if [ -n "$apt_pkgs" ]; then
+        # shellcheck disable=SC2086
+        sudo apt-get install -y --no-install-recommends $apt_pkgs \
+            || _fail "apt-get" "failed to install:$apt_pkgs"
+    fi
 
     for pkg in "${special_pkgs[@]}"; do
         case "$pkg" in
