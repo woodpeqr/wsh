@@ -474,14 +474,13 @@ if [[ -n $init_functions ]]; then
     cat "$wsh_dir/init/functions.sh"
 fi
 if [[ -n $setup ]]; then
+    setup_do_init #TODO: maybe check if we're already inited and skip if so?
     if [[ -n $setup_list ]]; then
         setup_do_list
     elif [[ -n $setup_packages ]]; then
         setup_do_packages || exit $?
     elif [[ -n $setup_simulate || -n $setup_delete || -n $setup_restow || -n $setup_dir_arg || ${#setup_pkg_args[@]} -gt 0 ]]; then
         setup_do_stow
-    else
-        setup_do_init
     fi
     if [[ -n $setup_shell ]]; then
         setup_do_shell
