@@ -7,6 +7,7 @@ help_format_1="  $help_format"
 wsh_dir=$(dirname $(realpath "$0"))
 plugin_dir="$wsh_dir/plugins"
 shim_dir="$wsh_dir/shims"
+dotfiles_dir="$wsh_dir/dotfiles"
 
 # FLAGS
 ## GLOBAL
@@ -20,6 +21,7 @@ init_plugins=
 init_functions=
 ##SETUP
 setup=
+setup_stow=
 setup_simulate=
 setup_delete=
 setup_restow=
@@ -37,7 +39,6 @@ agent_super=
 
 # ARGS
 ## SETUP
-setup_dir_arg=
 setup_pkg_args=()
 ## TIME
 time_from_arg=
@@ -85,7 +86,7 @@ usage_setup() {
     print_option 0 "-S" "--setup" "" "dotfiles / package setup"
     print_option 1 "-h" "--help" "" "show this menu"
     print_option 1 "-n" "--no,--simulate" "" "dry-run (passed to stow)"
-    print_option 1 "-d" "--dir" "dir" "override dotfiles directory"
+    print_option 1 "-S" "--stow" "" "stow listed packages"
     print_option 1 "-D" "--delete" "" "unstow listed packages"
     print_option 1 "-R" "--restow" "" "restow listed packages"
     print_option 1 "-l" "--list" "" "list packages with deployed status"
@@ -258,13 +259,8 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
             --no | --simulate | -n)
                 setup_simulate=1
                 ;;
-            --dir | -d)
-                if [[ $((i + 1)) -lt "${#flags[@]}" ]]; then
-                    ((i++))
-                    setup_dir_arg="${flags[$i]}"
-                else
-                    no_arg_for_flag "${flags[$i]}" "dir"
-                fi
+            --stow | -S)
+                setup_stow=1
                 ;;
             --delete | -D)
                 setup_delete=1
@@ -479,7 +475,7 @@ if [[ -n $setup ]]; then
         setup_do_list
     elif [[ -n $setup_packages ]]; then
         setup_do_packages || exit $?
-    elif [[ -n $setup_simulate || -n $setup_delete || -n $setup_restow || -n $setup_dir_arg || ${#setup_pkg_args[@]} -gt 0 ]]; then
+    elif [[ -n $setup_stow || -n $setup_simulate || -n $setup_delete || -n $setup_restow || ${#setup_pkg_args[@]} -gt 0 ]]; then
         setup_do_stow
     fi
     if [[ -n $setup_shell ]]; then

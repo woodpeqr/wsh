@@ -4,6 +4,9 @@ _w_sh() {
     local context state
     local -a args
     local i top_ctx agent_init_ctx agent_tool_choice after_separator dd_pos
+    local _wsh_dir _dotfiles_dir
+    _wsh_dir=$(dirname "$(realpath "${words[1]}" 2>/dev/null)" 2>/dev/null)
+    _dotfiles_dir="${_wsh_dir}/dotfiles"
 
     # Walk the already-typed words to determine context
     top_ctx=''
@@ -11,6 +14,7 @@ _w_sh() {
     agent_tool_choice='claude'
     after_separator=0
     dd_pos=0
+    local setup_pkg_ctx=0  # 1 when -SS/-SD/-SR seen
     i=1
     while [[ $i -lt $CURRENT ]]; do
         local w="${words[$i]}"
@@ -27,6 +31,9 @@ _w_sh() {
                             fi
                             ;;
                         --setup)    top_ctx=setup ;;
+                        --stow|--delete|--restow)
+                            [[ "$top_ctx" == setup ]] && setup_pkg_ctx=1
+                            ;;
                         --time)     top_ctx=time ;;
                         --git)      top_ctx=git ;;
                         --agent)    top_ctx=agent ;;
@@ -62,7 +69,16 @@ _w_sh() {
                                     top_ctx=init
                                 fi
                                 ;;
-                            S) top_ctx=setup ;;
+                            S)
+                                if [[ "$top_ctx" == setup ]]; then
+                                    setup_pkg_ctx=1
+                                else
+                                    top_ctx=setup
+                                fi
+                                ;;
+                            D|R)
+                                [[ "$top_ctx" == setup ]] && setup_pkg_ctx=1
+                                ;;
                             T) top_ctx=time ;;
                             G) top_ctx=git ;;
                             A) top_ctx=agent; agent_init_ctx=0 ;;
@@ -83,7 +99,7 @@ _w_sh() {
         esac
         # Consume argument-taking flags
         case "$w" in
-            -f|--from|-s|--start|-c|--credentials|-p|--prompt|-d|--dir)
+            -f|--from|-s|--start|-c|--credentials|-p|--prompt)
                 (( i++ ))   # skip next word (the argument)
                 ;;
         esac
@@ -121,10 +137,6 @@ _w_sh() {
                 _files -g '*.md'
                 return
             fi
-            ;;
-        -d|--dir)
-            _files -/
-            return
             ;;
     esac
 
@@ -171,13 +183,18 @@ _w_sh() {
             setup_flags=(
                 '-h:show help'           '--help:show help'
                 '-n:dry-run'             '--no:dry-run'          '--simulate:dry-run'
-                '-d:dotfiles directory'  '--dir:dotfiles directory'
+                '-S:stow packages'       '--stow:stow packages'
                 '-D:unstow packages'     '--delete:unstow packages'
                 '-R:restow packages'     '--restow:restow packages'
                 '-l:list packages'       '--list:list packages'
                 '-P:install packages'    '--packages:install packages'
             )
             _describe 'setup option' setup_flags
+            if [[ $setup_pkg_ctx -eq 1 && -d "$_dotfiles_dir" ]]; then
+                local -a _pkgs
+                _pkgs=( ${_dotfiles_dir}/*(N/:t) )
+                [[ ${#_pkgs} -gt 0 ]] && _describe 'package' _pkgs
+            fi
             ;;
 
         time)
