@@ -39,13 +39,8 @@ _setup_resolve_pkg() {
 # ── public functions ──────────────────────────────────────────────────────────
 
 setup_do_init() {
-    local repo_root
-    repo_root=$(git -C "$wsh_dir" rev-parse --show-toplevel 2>/dev/null) || {
-        error "could not determine git repo root"
-        exit 1
-    }
     log "Initializing dotfiles submodule..."
-    git -C "$repo_root" submodule update --init
+    git -C "$wsh_dir" submodule update --init
 }
 
 setup_do_stow() {
