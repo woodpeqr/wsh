@@ -15,6 +15,7 @@ debug=
 init=
 init_pyenv=
 init_nvm=
+init_goenv=
 init_plugins=
 init_functions=
 ##SETUP
@@ -76,7 +77,8 @@ usage_init() {
     print_option 1 "-p" "--pyenv" "" "init pyenv"
     print_option 1 "-z" "--plugins" "" "init zsh plugins from \$ZSH_PLUGIN_DIRS"
     print_option 1 "-f" "--functions" "" "init shell utility functions"
-    print_option 1 "-A" "--all" "" "init all (nvm, pyenv, plugins, functions)"
+    print_option 1 "-g" "--goenv" "" "init goenv"
+    print_option 1 "-A" "--all" "" "init all (nvm, pyenv, goenv, plugins, functions)"
 }
 
 usage_setup() {
@@ -222,6 +224,9 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
             --nvm | -n)
                 init_nvm=1
                 ;;
+            --goenv | -g)
+                init_goenv=1
+                ;;
             --plugins | -z)
                 init_plugins=1
                 ;;
@@ -231,6 +236,7 @@ for ((i = 0; i < "${#flags[@]}"; i++)); do
             --all | -A)
                 init_nvm=1
                 init_pyenv=1
+                init_goenv=1
                 init_plugins=1
                 init_functions=1
                 ;;
@@ -447,6 +453,10 @@ fi
 if [[ -n $init_nvm ]]; then
     debug "initializing nvm"
     cat "$wsh_dir/init/nvm.sh"
+fi
+if [[ -n $init_goenv ]]; then
+    debug "initializing goenv"
+    cat "$wsh_dir/init/goenv.sh"
 fi
 if [[ -n $init_plugins ]]; then
     debug "initializing zsh plugins"
