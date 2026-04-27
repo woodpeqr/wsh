@@ -133,6 +133,8 @@ usage() {
     log ""
     log "usage: $(basename $0) OPERATION [...]"
     log ""
+    log "  First time? Run: $(basename $0) -SPs"
+    log ""
     print_option 0 "-h" "--help" "" "show this menu"
     print_option 0 "-v" "--verbose" "" "extensive logging"
     usage_init
@@ -440,7 +442,8 @@ done
 
 if [[ -n $init ]]; then
     debug "initializing autocompletions"
-    cat "$wsh_dir/init/base.sh"
+    printf 'fpath=(%s/completions $fpath)\n' "$wsh_dir"
+    tail -n +2 "$wsh_dir/init/base.sh"
 fi
 if [[ -n $init_pyenv ]]; then
     debug "initializing pyenv"
@@ -461,6 +464,16 @@ if [[ -n $init_plugins ]]; then
         for _plugin_dir in "${_plugin_dirs[@]}"; do
             for _plugin_file in "$_plugin_dir"/*.zsh; do
                 [[ -f "$_plugin_file" ]] && echo "source \"$_plugin_file\""
+            done
+            for _plugin_subdir in "$_plugin_dir"/*/; do
+                _name="${_plugin_subdir%/}"
+                _name="${_name##*/}"
+                for _ext in ".plugin.zsh" ".zsh"; do
+                    if [[ -f "${_plugin_subdir}${_name}${_ext}" ]]; then
+                        echo "source \"${_plugin_subdir}${_name}${_ext}\""
+                        break
+                    fi
+                done
             done
         done
     fi

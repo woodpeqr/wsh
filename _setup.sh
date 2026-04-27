@@ -196,8 +196,42 @@ setup_do_packages() {
     done
 }
 
+_setup_has_env_var() {
+    grep -qE "^[#[:space:]]*(export )?$1=" "$HOME/.zshenv" 2>/dev/null
+}
+
+_setup_stub_env_var() {
+    local var="$1" desc="$2" default_val="$3"
+    _setup_has_env_var "$var" && return
+    printf '\n# %s\n# export %s=%s\n' "$desc" "$var" "$default_val" >> "$HOME/.zshenv"
+}
+
 setup_do_shell() {
-    printf 'export PATH="%s:$PATH"\n' "$wsh_dir" >"$HOME/.zshenv"
-    printf 'eval "$(%s/w.sh -IA)"\n' "$wsh_dir" >"$HOME/.zshrc"
+    if grep -q 'WSH_SETUP_DONE=1' "$HOME/.zshenv" 2>/dev/null; then
+        log "shell setup already done (WSH_SETUP_DONE=1 in ~/.zshenv) — skipping"
+        return
+    fi
+
+    printf 'export PATH="%s:$PATH"\n' "$wsh_dir" >> "$HOME/.zshenv"
+    printf 'eval "$(%s/w.sh -IA)"\n' "$wsh_dir" >> "$HOME/.zshrc"
+
+    # ZSH_PLUGIN_DIRS: write sensible defaults if not already set
+    if ! _setup_has_env_var "ZSH_PLUGIN_DIRS"; then
+        printf '\n# Colon-separated list of dirs containing .zsh plugin files (loaded by w.sh -Iz)\nexport ZSH_PLUGIN_DIRS="/usr/share/zsh/plugins:$HOME/.zsh/plugins:$HOME/.local/share/zsh/plugins"\n' >> "$HOME/.zshenv"
+    fi
+
+    # Required env var stubs
+    _setup_stub_env_var "SOLIDTIME_API_KEY"  "Required: Solidtime API bearer token (w.sh -T commands)" ""
+    _setup_stub_env_var "SOLIDTIME_URL"      "Required: Solidtime API base URL, e.g. https://app.solidtime.io (w.sh -T)" ""
+    _setup_stub_env_var "SOLIDTIME_ORG"      "Required: Solidtime organization name (w.sh -T)" ""
+    _setup_stub_env_var "SOLIDTIME_PROJECT"  "Required: Solidtime project name (w.sh -T)" "Work"
+    _setup_stub_env_var "GIT_CREDS"          "Required for w.sh -Gc: git credentials, format user=token" ""
+    # Optional env var stubs
+    _setup_stub_env_var "NVM_DIR"            "Optional: NVM directory, defaults to ~/.nvm (w.sh -In)" ""
+    _setup_stub_env_var "W_JOURNAL_DIR"      "Optional: journal dir for agent session hooks, defaults to ~/Documents/journal (w.sh -A)" ""
+
+    printf '\nexport WSH_SETUP_DONE=1\n' >> "$HOME/.zshenv"
+    export WSH_SETUP_DONE=1
+
     log "wrote ~/.zshenv and ~/.zshrc"
 }
